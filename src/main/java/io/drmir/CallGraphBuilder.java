@@ -84,8 +84,8 @@ public class CallGraphBuilder {
   }
 
   /**
-   * Generates entry points from all public methods in application and library classes.
-   * Never includes Primordial (RT jar) classes as entry points.
+   * Generates entry points from all public methods in application classes only.
+   * Only includes Application loader, not Extension or Primordial.
    */
   private List<Entrypoint> generateEntryPoints(IClassHierarchy cha) {
     return StreamSupport.stream(cha.spliterator(), false)
@@ -97,33 +97,29 @@ public class CallGraphBuilder {
   }
 
   /**
-   * Checks if a class is public and from Application or Extension loader.
-   * Never includes Primordial loader classes.
+   * Checks if a class is public and from Application loader only.
    */
   private boolean isPublicClass(IClass klass) {
-    return isApplicationOrLibrary(klass)
+    return isApplicationLoader(klass)
         && !klass.isInterface()
         && klass.isPublic();
   }
 
   /**
-   * Checks if a method is public and non-abstract.
-   * Never includes Primordial loader methods.
+   * Checks if a method is public and non-abstract from Application loader.
    */
   private boolean isPublicMethod(IMethod method) {
-    return isApplicationOrLibrary(method.getDeclaringClass())
+    return isApplicationLoader(method.getDeclaringClass())
         && method.isPublic()
         && !method.isAbstract();
   }
 
   /**
-   * Checks if class is from Application or Extension (library) loader.
-   * Never includes Primordial loader.
+   * Checks if class is from Application loader only.
    */
-  private boolean isApplicationOrLibrary(IClass klass) {
+  private boolean isApplicationLoader(IClass klass) {
     ClassLoaderReference ref = klass.getClassLoader().getReference();
-    return ref.equals(ClassLoaderReference.Application) ||
-           ref.equals(ClassLoaderReference.Extension);
+    return ref.equals(ClassLoaderReference.Application);
   }
 
   /**
