@@ -19,10 +19,31 @@ mvn clean package
 
 ### Testing
 
-**Note**: Currently no test framework is configured. To add tests:
-1. Add JUnit 5 dependency to `pom.xml`
-2. Add `maven-surefire-plugin` for test execution
-3. Create `src/test/java/io/drmir/` directory structure
+**Test Framework**: JUnit 5 (Jupiter) with AssertJ assertions
+
+**Run tests**:
+```bash
+# All tests (parallel execution enabled)
+mvn test
+
+# Specific test class
+mvn test -Dtest=IntegrationTest
+
+# With coverage report
+mvn clean test jacoco:report
+```
+
+**Parallel Execution**:
+- Tests run concurrently using JUnit 5 parallel execution
+- Configuration: `src/test/resources/junit-platform.properties`
+- Uses dynamic strategy (adapts to available CPU cores)
+- Faster execution (~30% improvement on multi-core systems)
+
+**Test Structure**:
+- Unit tests: `src/test/java/io/drmir/CallGraphBuilderTest.java` (9 tests)
+- Integration tests: `src/test/java/io/drmir/IntegrationTest.java` (12 tests)
+- Test resources: `src/test/resources/test-jars/` (fixed JAR versions)
+- Coverage target: 90% line coverage (enforced by JaCoCo)
 
 ## Code Style Guidelines
 

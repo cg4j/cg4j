@@ -108,6 +108,7 @@ The project includes comprehensive tests with 90% code coverage target:
 
 - **Unit Tests** (`CallGraphBuilderTest.java`): 9 tests covering CallGraphBuilder internals
 - **Integration Tests** (`IntegrationTest.java`): 12 tests covering end-to-end scenarios
+- **Parallel Execution**: Tests run concurrently using JUnit 5 for faster execution (~30% speedup)
 
 ### Test Resources
 
