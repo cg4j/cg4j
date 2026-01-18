@@ -14,7 +14,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class IntegrationTest extends BaseIntegrationTest {
 
-  // Scenario 1: App Only (No RT)
+  /**
+   * Integration test: Analyzes simple library (slf4j) without Java runtime classes.
+   * Expects 611±6 edges, no RT classes, and only org/slf4j/* source prefixes.
+   */
   @Test
   void testAppOnly_NoRT_Slf4j() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
@@ -39,7 +42,10 @@ class IntegrationTest extends BaseIntegrationTest {
         .allMatch(prefix -> prefix.startsWith("org/slf4j"));
   }
 
-  // Scenario 2: App Only (With RT)
+  /**
+   * Integration test: Analyzes simple library (slf4j) including Java runtime classes.
+   * Expects 2,221±22 edges, RT classes present, more edges than no-RT version.
+   */
   @Test
   void testAppOnly_WithRT_Slf4j() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
@@ -63,7 +69,10 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(TestUtils.countEdges(outputFile)).isGreaterThan(611);
   }
 
-  // Scenario 3: App + Deps (No RT)
+  /**
+   * Integration test: Analyzes library with dependencies (OkHttp) without Java runtime.
+   * Expects 6,902±69 edges, no RT classes, sources from Application and Extension loaders.
+   */
   @Test
   void testAppWithDeps_NoRT_OkHttp() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
@@ -91,7 +100,10 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(prefixes).anyMatch(p -> p.startsWith("kotlin/"));       // Extension
   }
 
-  // Scenario 4: App + Deps (With RT)
+  /**
+   * Integration test: Analyzes library with dependencies (OkHttp) including Java runtime.
+   * Expects 13,319±133 edges, RT classes present, sources from all loaders.
+   */
   @Test
   void testAppWithDeps_WithRT_OkHttp() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
@@ -118,12 +130,20 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(prefixes).anyMatch(p -> p.startsWith("java/"));                  // Primordial
   }
 
+  /**
+   * Integration test: Tests error handling for non-existent JAR file.
+   * Expects exit code 1 (error) when JAR file does not exist.
+   */
   @Test
   void testInvalidJarPath_ReturnsErrorCode() {
     int exitCode = TestUtils.runMain("nonexistent.jar");
     assertThat(exitCode).isEqualTo(1);
   }
 
+  /**
+   * Integration test: Tests custom output file path functionality.
+   * Expects file created at specified path with correct name.
+   */
   @Test
   void testCustomOutputFile_CreatesCorrectFile() throws IOException {
     outputFile = new File("custom-test-output.csv");
@@ -139,6 +159,10 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(outputFile.getName()).isEqualTo("custom-test-output.csv");
   }
 
+  /**
+   * Integration test: Tests analysis without specifying dependencies flag.
+   * Expects successful execution with 611±6 edges when no -d flag provided.
+   */
   @Test
   void testNoDepsFlag_WorksWithoutDependencies() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
@@ -154,6 +178,10 @@ class IntegrationTest extends BaseIntegrationTest {
     TestUtils.assertEdgeCount(outputFile, 611, 1.0);
   }
 
+  /**
+   * Integration test: Tests handling of empty dependencies directory.
+   * Expects successful execution (exit code 0) when deps directory is empty.
+   */
   @Test
   void testEmptyDepsDirectory_HandlesGracefully() throws IOException {
     File emptyDir = Files.createTempDirectory("empty-deps").toFile();
@@ -172,6 +200,10 @@ class IntegrationTest extends BaseIntegrationTest {
     // Should work but without dependency benefits
   }
 
+  /**
+   * Integration test: Tests default value of --include-rt flag.
+   * Expects RT classes included by default (2,221±22 edges) when flag not specified.
+   */
   @Test
   void testDefaultIncludeRt_IsTrue() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
@@ -189,6 +221,10 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(TestUtils.hasRTClasses(outputFile)).isTrue();
   }
 
+  /**
+   * Integration test: Tests file overwriting behavior.
+   * Expects existing output file to be overwritten with valid CSV content.
+   */
   @Test
   void testOutputFileAlreadyExists_Overwrites() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
@@ -211,6 +247,10 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(edges).isNotEmpty();
   }
 
+  /**
+   * Integration test: Tests CSV output format validation.
+   * Expects CSV file with correct header: "source_method,target_method".
+   */
   @Test
   void testCSVFormat_HasCorrectHeader() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
@@ -227,6 +267,10 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(firstLine).isEqualTo("source_method,target_method");
   }
 
+  /**
+   * Integration test: Tests entry points are only from Application ClassLoader.
+   * Expects boot edges (if any) to originate only from application code (okhttp3/*).
+   */
   @Test
   void testEntryPointsNeverFromExtension_OkHttp() throws IOException {
     outputFile = TestUtils.createTempOutputFile();

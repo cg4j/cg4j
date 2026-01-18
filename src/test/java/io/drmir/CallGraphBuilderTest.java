@@ -24,6 +24,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
     builder = new CallGraphBuilder();
   }
 
+  /**
+   * Tests basic call graph construction from a simple JAR file.
+   * Expects non-null call graph with at least one node.
+   */
   @Test
   void testBuildCallGraph_ValidJar_Success() throws Exception {
     CallGraph cg = builder.buildCallGraph(
@@ -36,6 +40,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
     assertThat(cg.getNumberOfNodes()).isGreaterThan(0);
   }
 
+  /**
+   * Tests call graph construction with dependency JARs loaded via Extension ClassLoader.
+   * Expects larger call graph (1000+ nodes) when dependencies are included.
+   */
   @Test
   void testBuildCallGraph_WithDependencies_LoadsExtension() throws Exception {
     List<File> deps = Arrays.asList(okhttpDeps.listFiles());
@@ -50,6 +58,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
     assertThat(cg.getNumberOfNodes()).isGreaterThan(1000);
   }
 
+  /**
+   * Tests error handling when JAR file does not exist.
+   * Expects exception to be thrown.
+   */
   @Test
   void testBuildCallGraph_NonExistentJar_ThrowsException() {
     assertThatThrownBy(() -> {
@@ -61,6 +73,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
     }).isInstanceOf(Throwable.class);
   }
 
+  /**
+   * Tests edge extraction produces valid method signature format.
+   * Expects edges with package.Class.method:(descriptor) format.
+   */
   @Test
   void testExtractEdges_ProducesValidFormat() throws Exception {
     CallGraph cg = builder.buildCallGraph(
@@ -81,6 +97,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
     assertThat(edge.target).contains(".");
   }
 
+  /**
+   * Tests RT (Java runtime) class filtering when disabled.
+   * Expects no java/* classes in extracted edges when includeRT=false.
+   */
   @Test
   void testExtractEdges_FiltersRTWhenDisabled() throws Exception {
     CallGraph cg = builder.buildCallGraph(
@@ -99,6 +119,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
     }
   }
 
+  /**
+   * Tests RT (Java runtime) class inclusion when enabled.
+   * Expects at least one java/* class in extracted edges when includeRT=true.
+   */
   @Test
   void testExtractEdges_IncludesRTWhenEnabled() throws Exception {
     CallGraph cg = builder.buildCallGraph(
@@ -122,6 +146,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
     assertThat(foundRTEdge).isTrue();
   }
 
+  /**
+   * Tests method signature formatting.
+   * Expects format: package.Class.method:(descriptor) with package, class, method, and descriptor.
+   */
   @Test
   void testFormatMethod_ReturnsCorrectSignature() throws Exception {
     CallGraph cg = builder.buildCallGraph(
@@ -140,6 +168,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
     assertThat(edge.target).matches(".+\\..+:.+");
   }
 
+  /**
+   * Tests entry points are generated only from Application ClassLoader.
+   * Expects non-null call graph with entry points from application code only.
+   */
   @Test
   void testEntryPoints_OnlyApplicationLoader() throws Exception {
     List<File> deps = Arrays.asList(okhttpDeps.listFiles());
@@ -156,6 +188,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
     assertThat(cg.getNumberOfNodes()).isGreaterThan(0);
   }
 
+  /**
+   * Tests call graph construction with no dependencies.
+   * Expects successful graph construction when dependency list is empty.
+   */
   @Test
   void testEmptyDependenciesList_Works() throws Exception {
     CallGraph cg = builder.buildCallGraph(

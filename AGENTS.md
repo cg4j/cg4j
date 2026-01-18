@@ -65,6 +65,30 @@ public void method() {
 - Brief one-line summaries preferred
 - No need for `@param`/`@return` tags for simple methods
 
+**Test Method Javadoc**:
+- All test methods (unit and integration tests)
+- Format:
+  ```java
+  /**
+   * [Test type]: [Main purpose of test].
+   * Expects [expected outcome/behavior].
+   */
+  ```
+- Test type: "Unit test" or "Integration test"
+- Keep it simple: 1-2 sentences maximum
+- Focus on what is tested and what is expected
+- Example:
+  ```java
+  /**
+   * Unit test: Tests basic call graph construction from a simple JAR file.
+   * Expects non-null call graph with at least one node.
+   */
+  @Test
+  void testBuildCallGraph_ValidJar_Success() throws Exception {
+    // test code
+  }
+  ```
+
 **Inline Comments**:
 - Use `//` style for single-line comments
 - Place before the code block they describe
