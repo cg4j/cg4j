@@ -29,6 +29,11 @@
             <version>1.6.12</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>4.7.5</version>
+        </dependency>
     </dependencies>
 
     <build>

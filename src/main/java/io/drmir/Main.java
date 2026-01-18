@@ -1,6 +1,10 @@
 package io.drmir;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -13,42 +17,51 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * Main entry point for the call graph generation tool.
  */
-public class Main {
+@Command(name = "java-cg-wala", 
+         mixinStandardHelpOptions = true,
+         version = "1.0-SNAPSHOT",
+         description = "Builds call graphs from Java JAR files using WALA")
+public class Main implements Callable<Integer> {
 
-  public static void main(String[] args) throws Exception {
-    // Parse command line arguments
-    if (args.length == 0) {
-      printUsage();
-      System.exit(1);
-    }
-    
-    String targetJar = args[0];
-    File targetFile = new File(targetJar);
-    
-    if (!targetFile.exists()) {
+  @Parameters(index = "0", 
+              description = "JAR file to analyze")
+  private File targetJar;
+
+  @Option(names = {"-o", "--output"}, 
+          description = "Output CSV file (default: ${DEFAULT-VALUE})",
+          defaultValue = "callgraph.csv")
+  private String outputCsv;
+
+  @Option(names = {"-d", "--deps"}, 
+          description = "Directory containing dependency JAR files")
+  private File depsDir;
+
+  public static void main(String[] args) {
+    int exitCode = new CommandLine(new Main()).execute(args);
+    System.exit(exitCode);
+  }
+
+  @Override
+  public Integer call() throws Exception {
+    // Validate target JAR exists
+    if (!targetJar.exists()) {
       System.err.println("Error: Target JAR file not found: " + targetJar);
-      System.exit(1);
-    }
-    
-    // Determine output CSV file
-    String outputCsv = "callgraph.csv";
-    int depsArgIndex = 1;
-    if (args.length > 1 && !new File(args[1]).isDirectory()) {
-      outputCsv = args[1];
-      depsArgIndex = 2;
+      return 1;
     }
     
     // Find JAR dependencies
     List<File> dependencies = new ArrayList<>();
-    if (args.length > depsArgIndex) {
-      File depsDir = new File(args[depsArgIndex]);
+    if (depsDir != null) {
       if (depsDir.exists() && depsDir.isDirectory()) {
         dependencies = findJarsInDirectory(depsDir);
         System.out.println("Found " + dependencies.size() + " dependency JARs");
+      } else {
+        System.err.println("Warning: Dependencies directory not found: " + depsDir);
       }
     }
     
@@ -61,7 +74,7 @@ public class Main {
     long startTime = System.nanoTime();
     
     CallGraphBuilder builder = new CallGraphBuilder();
-    CallGraph cg = builder.buildCallGraph(targetJar, dependencies, exclusionFile.toFile());
+    CallGraph cg = builder.buildCallGraph(targetJar.getPath(), dependencies, exclusionFile.toFile());
     
     double duration = (System.nanoTime() - startTime) / 1_000_000_000.0;
     System.out.println("Call graph built in " + String.format("%.2f", duration) + " seconds");
@@ -71,6 +84,8 @@ public class Main {
     System.out.println("\nWriting call graph to: " + outputCsv);
     int edgeCount = writeCallGraphToCSV(cg, outputCsv);
     System.out.println("Total edges written: " + edgeCount);
+    
+    return 0;
   }
 
   /**
@@ -136,15 +151,4 @@ public class Main {
     return jarFiles;
   }
 
-  /**
-   * Prints usage information.
-   */
-  private static void printUsage() {
-    System.err.println("Usage: java -jar java-cg-wala.jar <target.jar> [output.csv] [dependencies-dir]");
-    System.err.println();
-    System.err.println("Arguments:");
-    System.err.println("  target.jar         - JAR file to analyze (required)");
-    System.err.println("  output.csv         - Output CSV file (default: callgraph.csv)");
-    System.err.println("  dependencies-dir   - Directory containing dependency JAR files");
-  }
 }
