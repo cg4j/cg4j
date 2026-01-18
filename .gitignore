@@ -1,5 +1,18 @@
 # Maven
 target/
 
-# CSV files
+# CSV files (test outputs)
 *.csv
+callgraph.csv
+custom*.csv
+test-*.csv
+
+# Keep dataset for manual testing but don't track
+dataset/
+
+# JaCoCo coverage reports
+target/site/jacoco/
+*.exec
+
+# Test temporary files
+**/target/test-output/

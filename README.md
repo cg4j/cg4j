@@ -74,3 +74,56 @@ org/slf4j/Logger.info:(Ljava/lang/String;)V,org/slf4j/helpers/MessageFormatter.f
 
 - Java 11 or higher
 - Maven 3.6 or higher
+
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+mvn test
+
+# Run specific test class
+mvn test -Dtest=IntegrationTest
+
+# Run specific test method
+mvn test -Dtest=IntegrationTest#testAppOnly_NoRT_Slf4j
+
+# Run tests with coverage report
+mvn clean test jacoco:report
+
+# View HTML coverage report
+open target/site/jacoco/index.html
+
+# View XML coverage report (for CI)
+cat target/site/jacoco/jacoco.xml
+```
+
+### Test Structure
+
+The project includes comprehensive tests with 90% code coverage target:
+
+- **Unit Tests** (`CallGraphBuilderTest.java`): 9 tests covering CallGraphBuilder internals
+- **Integration Tests** (`IntegrationTest.java`): 12 tests covering end-to-end scenarios
+
+### Test Scenarios
+
+1. **Application only (no RT jar)** - Pure application analysis
+2. **Application only (with RT jar)** - Application with Java runtime
+3. **Application + dependencies (no RT jar)** - Multi-JAR without RT
+4. **Application + dependencies (with RT jar)** - Complete call graph
+
+### Test Resources
+
+Test JARs are included in `src/test/resources/test-jars/`:
+- `slf4j-api-2.0.17.jar` - Simple library (69 KB)
+- `mockito-core-5.21.0.jar` - Library with dependencies (695 KB)
+- `deps/` - Mockito dependencies (9.1 MB)
+
+These JARs are fixed versions and should not be updated.
+
+### Coverage Requirements
+
+- Minimum 90% line coverage enforced
+- Build fails if coverage drops below threshold
+- Reports: HTML (`target/site/jacoco/index.html`) and XML (`target/site/jacoco/jacoco.xml`)
