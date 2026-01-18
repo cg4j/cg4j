@@ -22,7 +22,7 @@ import java.util.concurrent.Callable;
 /**
  * Main entry point for the call graph generation tool.
  */
-@Command(name = "java-cg-wala", 
+@Command(name = "cg4j", 
          mixinStandardHelpOptions = true,
          version = "1.0-SNAPSHOT",
          description = "Builds call graphs from Java JAR files using WALA")

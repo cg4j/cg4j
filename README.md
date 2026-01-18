@@ -1,4 +1,4 @@
-# Java Call Graph with WALA
+# cg4j - Call Graph for Java
 
 A command-line tool to build call graphs from Java JAR files using IBM WALA (T.J. Watson Libraries for Analysis).
 
@@ -17,12 +17,12 @@ A command-line tool to build call graphs from Java JAR files using IBM WALA (T.J
 mvn clean package
 ```
 
-This creates `target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar`
+This creates `target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar`
 
 ## Usage
 
 ```bash
-Usage: java-cg-wala [-hV] [-d=<depsDir>] [-o=<outputCsv>] <targetJar>
+Usage: cg4j [-hV] [-d=<depsDir>] [-o=<outputCsv>] <targetJar>
 
 Arguments:
   <targetJar>              JAR file to analyze (required)
@@ -38,22 +38,22 @@ Options:
 
 ```bash
 # Basic usage - outputs to callgraph.csv
-java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar
+java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar
 
 # Specify output file with short option
-java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar -o output.csv
+java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar -o output.csv
 
 # Specify output file with long option
-java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar --output=output.csv
+java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar --output=output.csv
 
 # Include dependencies
-java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar -o output.csv -d lib/
+java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar -o output.csv -d lib/
 
 # Show help
-java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar --help
+java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar --help
 
 # Show version
-java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar --version
+java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar --version
 ```
 
 ## Output Format

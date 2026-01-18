@@ -5,9 +5,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.drmir</groupId>
-    <artifactId>java-cg-wala</artifactId>
+    <artifactId>cg4j</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <name>Java Call Graph WALA</name>
+    <name>cg4j</name>
     <packaging>jar</packaging>
 
     <properties>
