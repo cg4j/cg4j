@@ -1,4 +1,4 @@
-package com.example;
+package io.drmir;
 
 import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IMethod;

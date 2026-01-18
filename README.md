@@ -16,19 +16,19 @@ A simple tool to build call graphs from Java JAR files using IBM WALA (T.J. Wats
 mvn clean package
 ```
 
-This creates `target/callgraph-demo-1.0-SNAPSHOT-jar-with-dependencies.jar`
+This creates `target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar`
 
 ## Usage
 
 ```bash
 # Basic usage (outputs to callgraph.csv)
-java -jar target/callgraph-demo-1.0-SNAPSHOT-jar-with-dependencies.jar <target.jar>
+java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar <target.jar>
 
 # Specify output file
-java -jar target/callgraph-demo-1.0-SNAPSHOT-jar-with-dependencies.jar <target.jar> <output.csv>
+java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar <target.jar> <output.csv>
 
 # Include dependencies
-java -jar target/callgraph-demo-1.0-SNAPSHOT-jar-with-dependencies.jar <target.jar> <output.csv> <dependencies-dir>
+java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar <target.jar> <output.csv> <dependencies-dir>
 ```
 
 ## Output Format
