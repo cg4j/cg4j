@@ -95,6 +95,9 @@ mvn clean test jacoco:report
 # View HTML coverage report
 open target/site/jacoco/index.html
 
+# Get coverage percentage from report
+grep -oP '<tfoot>.*?<td class="ctr2">\K[0-9]+%' target/site/jacoco/index.html | head -1
+
 # View XML coverage report (for CI)
 cat target/site/jacoco/jacoco.xml
 ```
