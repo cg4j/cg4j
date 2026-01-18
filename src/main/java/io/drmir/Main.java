@@ -45,6 +45,11 @@ public class Main implements Callable<Integer> {
           description = "Directory containing dependency JAR files")
   private File depsDir;
 
+  @Option(names = {"--include-rt"}, 
+          description = "Include Java Runtime (RT) jar in call graph analysis (default: ${DEFAULT-VALUE})",
+          defaultValue = "true")
+  private boolean includeRt;
+
   public static void main(String[] args) {
     int exitCode = new CommandLine(new Main()).execute(args);
     System.exit(exitCode);
@@ -74,7 +79,7 @@ public class Main implements Callable<Integer> {
     logger.info("Created exclusion file: {}", exclusionFile);
     
     // Build call graph
-    logger.info("Building call graph with 0-CFA...");
+    logger.info("Building call graph with 0-CFA (includeRt={})...", includeRt);
     long startTime = System.nanoTime();
     
     CallGraphBuilder builder = new CallGraphBuilder();
@@ -86,7 +91,7 @@ public class Main implements Callable<Integer> {
     
     // Write call graph to CSV
     logger.info("\nWriting call graph to: {}", outputCsv);
-    int edgeCount = writeCallGraphToCSV(cg, outputCsv);
+    int edgeCount = writeCallGraphToCSV(cg, outputCsv, includeRt);
     logger.info("Total edges written: {}", edgeCount);
     
     return 0;
@@ -94,14 +99,16 @@ public class Main implements Callable<Integer> {
 
   /**
    * Writes call graph to CSV file with format: source_method,target_method
+   * 
+   * @param includeRt if false, filters out edges involving RT (Primordial) methods
    */
-  private static int writeCallGraphToCSV(CallGraph cg, String outputFile) throws IOException {
+  private static int writeCallGraphToCSV(CallGraph cg, String outputFile, boolean includeRt) throws IOException {
     int edgeCount = 0;
     
     try (PrintWriter writer = new PrintWriter(new FileWriter(outputFile))) {
       writer.println("source_method,target_method");
       
-      Iterator<CallGraphBuilder.CallGraphEdge> edges = CallGraphBuilder.extractEdges(cg);
+      Iterator<CallGraphBuilder.CallGraphEdge> edges = CallGraphBuilder.extractEdges(cg, includeRt);
       while (edges.hasNext()) {
         CallGraphBuilder.CallGraphEdge edge = edges.next();
         writer.println(edge.source + "," + edge.target);

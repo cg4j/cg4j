@@ -39,7 +39,7 @@ public class CallGraphBuilder {
     // Build Class Hierarchy with CHA
     ClassHierarchy cha = constructCHA(jarFile, dependencies, exclusionFile);
     
-    // Generate entry points (all public methods in application/library classes)
+    // Generate entry points (only application and extension classes, never Primordial)
     List<Entrypoint> entrypoints = generateEntryPoints(cha);
     
     if (entrypoints.isEmpty()) {
@@ -61,23 +61,23 @@ public class CallGraphBuilder {
 
   /**
    * Constructs Class Hierarchy with exclusions.
+   * 
+   * Scope organization:
+   * - Primordial: rt.jar (Java runtime) - always loaded for class hierarchy
+   * - Extension: dependency JARs
+   * - Application: target JAR being analyzed
    */
   private ClassHierarchy constructCHA(String programJarFile, 
                                       List<File> dependenciesJarFiles,
                                       File exclusionFile) throws Exception {
+    // Always use standard scope with Primordial (rt.jar), Extension, and Application loaders
+    // RT jar is required for class hierarchy construction (java.lang.Object, etc.)
     AnalysisScope scope = AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
-        programJarFile, null);
+        programJarFile, exclusionFile);
     
     // Add dependency JARs to Extension class loader
     for (File depJarFile : dependenciesJarFiles) {
       scope.addToScope(ClassLoaderReference.Extension, new JarFile(depJarFile));
-    }
-    
-    // Set exclusions
-    if (exclusionFile != null && exclusionFile.exists()) {
-      try (FileInputStream fis = new FileInputStream(exclusionFile)) {
-        scope.setExclusions(new FileOfClasses(fis));
-      }
     }
     
     return ClassHierarchyFactory.make(scope);
@@ -85,6 +85,7 @@ public class CallGraphBuilder {
 
   /**
    * Generates entry points from all public methods in application and library classes.
+   * Never includes Primordial (RT jar) classes as entry points.
    */
   private List<Entrypoint> generateEntryPoints(IClassHierarchy cha) {
     return StreamSupport.stream(cha.spliterator(), false)
@@ -97,6 +98,7 @@ public class CallGraphBuilder {
 
   /**
    * Checks if a class is public and from Application or Extension loader.
+   * Never includes Primordial loader classes.
    */
   private boolean isPublicClass(IClass klass) {
     return isApplicationOrLibrary(klass)
@@ -106,6 +108,7 @@ public class CallGraphBuilder {
 
   /**
    * Checks if a method is public and non-abstract.
+   * Never includes Primordial loader methods.
    */
   private boolean isPublicMethod(IMethod method) {
     return isApplicationOrLibrary(method.getDeclaringClass())
@@ -115,6 +118,7 @@ public class CallGraphBuilder {
 
   /**
    * Checks if class is from Application or Extension (library) loader.
+   * Never includes Primordial loader.
    */
   private boolean isApplicationOrLibrary(IClass klass) {
     ClassLoaderReference ref = klass.getClassLoader().getReference();
@@ -143,8 +147,10 @@ public class CallGraphBuilder {
 
   /**
    * Extracts call graph edges as an iterator for processing.
+   * 
+   * @param includeRt if false, filters out edges where source or target is from Primordial loader
    */
-  public static Iterator<CallGraphEdge> extractEdges(CallGraph cg) {
+  public static Iterator<CallGraphEdge> extractEdges(CallGraph cg, boolean includeRt) {
     return new Iterator<CallGraphEdge>() {
       private final Iterator<CGNode> nodeIterator = cg.iterator();
       private CGNode currentSource;
@@ -181,6 +187,21 @@ public class CallGraphBuilder {
                                   sourceUri.equals("com/ibm/wala/FakeRootClass.fakeWorldClinit:()V");
             if (isBootMethod) {
               sourceUri = "<boot>";
+            }
+            
+            // Filter RT edges if includeRt is false
+            if (!includeRt) {
+              // Check if source or target is from Primordial loader
+              ClassLoaderReference sourceLoader = sourceMethod.getDeclaringClass().getClassLoader().getReference();
+              ClassLoaderReference targetLoader = targetMethod.getDeclaringClass().getClassLoader().getReference();
+              
+              boolean sourceIsPrimordial = sourceLoader.equals(ClassLoaderReference.Primordial);
+              boolean targetIsPrimordial = targetLoader.equals(ClassLoaderReference.Primordial);
+              
+              // Skip edges that involve Primordial (RT) classes
+              if (sourceIsPrimordial || targetIsPrimordial) {
+                continue;
+              }
             }
             
             nextEdge = new CallGraphEdge(sourceUri, targetUri);
