@@ -106,24 +106,15 @@ The project includes comprehensive tests with 90% code coverage target:
 - **Unit Tests** (`CallGraphBuilderTest.java`): 9 tests covering CallGraphBuilder internals
 - **Integration Tests** (`IntegrationTest.java`): 12 tests covering end-to-end scenarios
 
-### Test Scenarios
-
-1. **Application only (no RT jar)** - Pure application analysis
-2. **Application only (with RT jar)** - Application with Java runtime
-3. **Application + dependencies (no RT jar)** - Multi-JAR without RT
-4. **Application + dependencies (with RT jar)** - Complete call graph
-
 ### Test Resources
 
 Test JARs are included in `src/test/resources/test-jars/`:
 - `slf4j-api-2.0.17.jar` - Simple library (69 KB)
-- `mockito-core-5.21.0.jar` - Library with dependencies (695 KB)
-- `deps/` - Mockito dependencies (9.1 MB)
+- `okhttp-jvm-5.3.2.jar` - HTTP client library (849 KB)
+- `deps/` - OkHttp dependencies (~2.1 MB)
+  - `kotlin-stdlib-2.2.21.jar`
+  - `okio-jvm-3.16.4.jar`
+
+**Total test resources: ~2.9 MB**
 
 These JARs are fixed versions and should not be updated.
-
-### Coverage Requirements
-
-- Minimum 90% line coverage enforced
-- Build fails if coverage drops below threshold
-- Reports: HTML (`target/site/jacoco/index.html`) and XML (`target/site/jacoco/jacoco.xml`)

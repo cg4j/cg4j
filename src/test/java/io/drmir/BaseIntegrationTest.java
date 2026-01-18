@@ -8,26 +8,26 @@ import java.io.File;
 public abstract class BaseIntegrationTest {
 
   protected static File slf4jJar;
-  protected static File mockitoJar;
-  protected static File mockitoDeps;
+  protected static File okhttpJar;
+  protected static File okhttpDeps;
 
   protected File outputFile;
 
   @BeforeAll
   static void setupTestJars() {
     slf4jJar = TestUtils.getTestJar("slf4j-api-2.0.17.jar");
-    mockitoJar = TestUtils.getTestJar("mockito-core-5.21.0.jar");
-    mockitoDeps = TestUtils.getTestDepsDir();
+    okhttpJar = TestUtils.getTestJar("okhttp-jvm-5.3.2.jar");
+    okhttpDeps = TestUtils.getTestDepsDir();
 
     // Verify test JARs exist
     if (!slf4jJar.exists()) {
       throw new RuntimeException("slf4j test JAR not found");
     }
-    if (!mockitoJar.exists()) {
-      throw new RuntimeException("mockito test JAR not found");
+    if (!okhttpJar.exists()) {
+      throw new RuntimeException("okhttp test JAR not found");
     }
-    if (!mockitoDeps.exists() || !mockitoDeps.isDirectory()) {
-      throw new RuntimeException("mockito deps directory not found");
+    if (!okhttpDeps.exists() || !okhttpDeps.isDirectory()) {
+      throw new RuntimeException("okhttp deps directory not found");
     }
   }
 

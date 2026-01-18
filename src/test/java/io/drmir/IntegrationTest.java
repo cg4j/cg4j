@@ -65,12 +65,12 @@ class IntegrationTest extends BaseIntegrationTest {
 
   // Scenario 3: App + Deps (No RT)
   @Test
-  void testAppWithDeps_NoRT_Mockito() throws IOException {
+  void testAppWithDeps_NoRT_OkHttp() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
 
     int exitCode = TestUtils.runMain(
-        mockitoJar.getPath(),
-        "-d", mockitoDeps.getPath(),
+        okhttpJar.getPath(),
+        "-d", okhttpDeps.getPath(),
         "-o", outputFile.getPath(),
         "--include-rt=false"
     );
@@ -78,27 +78,27 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(exitCode).isEqualTo(0);
     assertThat(outputFile).exists();
 
-    // Edge count: 9,882 ±1% = 9,882±99
-    TestUtils.assertEdgeCount(outputFile, 9882, 1.0);
+    // Edge count: 6,902 ±1% = 6,902±69
+    TestUtils.assertEdgeCount(outputFile, 6902, 1.0);
 
     // No RT classes
     assertThat(TestUtils.hasRTClasses(outputFile)).isFalse();
 
     // Sources include Application and Extension loaders
     Set<String> prefixes = TestUtils.getSourcePrefixes(outputFile);
-    assertThat(prefixes).anyMatch(p -> p.startsWith("org/mockito"));      // Application
-    assertThat(prefixes).anyMatch(p -> p.startsWith("net/bytebuddy"));   // Extension
-    assertThat(prefixes).anyMatch(p -> p.startsWith("org/objenesis"));   // Extension
+    assertThat(prefixes).anyMatch(p -> p.startsWith("okhttp3/"));      // Application
+    assertThat(prefixes).anyMatch(p -> p.startsWith("okio/"));         // Extension
+    assertThat(prefixes).anyMatch(p -> p.startsWith("kotlin/"));       // Extension
   }
 
   // Scenario 4: App + Deps (With RT)
   @Test
-  void testAppWithDeps_WithRT_Mockito() throws IOException {
+  void testAppWithDeps_WithRT_OkHttp() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
 
     int exitCode = TestUtils.runMain(
-        mockitoJar.getPath(),
-        "-d", mockitoDeps.getPath(),
+        okhttpJar.getPath(),
+        "-d", okhttpDeps.getPath(),
         "-o", outputFile.getPath(),
         "--include-rt=true"
     );
@@ -106,19 +106,16 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(exitCode).isEqualTo(0);
     assertThat(outputFile).exists();
 
-    // Edge count: More than no-RT, expect 15,000+
-    int edgeCount = TestUtils.countEdges(outputFile);
-    assertThat(edgeCount).isGreaterThan(9882);
-    assertThat(edgeCount).isGreaterThan(15000);
+    // Edge count: 13,319 ±1% = 13,319±133
+    TestUtils.assertEdgeCount(outputFile, 13319, 1.0);
 
     // Has RT classes
     assertThat(TestUtils.hasRTClasses(outputFile)).isTrue();
 
-    // Sources include all three loaders
+    // Sources include loaders
     Set<String> prefixes = TestUtils.getSourcePrefixes(outputFile);
-    assertThat(prefixes).anyMatch(p -> p.startsWith("org/mockito"));      // Application
-    assertThat(prefixes).anyMatch(p -> p.startsWith("net/bytebuddy"));   // Extension
-    assertThat(prefixes).anyMatch(p -> p.startsWith("java/"));            // Primordial
+    assertThat(prefixes).anyMatch(p -> p.startsWith("okhttp3/"));  // Application
+    assertThat(prefixes).anyMatch(p -> p.startsWith("java/"));                  // Primordial
   }
 
   @Test
@@ -165,7 +162,7 @@ class IntegrationTest extends BaseIntegrationTest {
     outputFile = TestUtils.createTempOutputFile();
 
     int exitCode = TestUtils.runMain(
-        mockitoJar.getPath(),
+        okhttpJar.getPath(),
         "-d", emptyDir.getPath(),
         "-o", outputFile.getPath(),
         "--include-rt=false"
@@ -231,27 +228,26 @@ class IntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
-  void testEntryPointsNeverFromExtension_Mockito() throws IOException {
+  void testEntryPointsNeverFromExtension_OkHttp() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
 
     int exitCode = TestUtils.runMain(
-        mockitoJar.getPath(),
-        "-d", mockitoDeps.getPath(),
+        okhttpJar.getPath(),
+        "-d", okhttpDeps.getPath(),
         "-o", outputFile.getPath(),
         "--include-rt=false"
     );
 
     assertThat(exitCode).isEqualTo(0);
 
-    // Verify no <boot> -> Extension loader edges
-    // (Entry points should only be from Application loader - mockito)
+    // Verify entry points are from Application loader
+    // (Entry points should only be from Application loader - jackson-databind)
     List<String[]> edges = TestUtils.parseCSV(outputFile);
 
     for (String[] edge : edges) {
       if (edge[0].equals("<boot>")) {
-        // If there are boot edges (shouldn't be), verify they're not to Extension
-        assertThat(edge[1]).doesNotStartWith("net/bytebuddy");
-        assertThat(edge[1]).doesNotStartWith("org/objenesis");
+        // If there are boot edges (shouldn't be many), verify they're from jackson
+        assertThat(edge[1]).matches("okhttp3//.*");
       }
     }
   }

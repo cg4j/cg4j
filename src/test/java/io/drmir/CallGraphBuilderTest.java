@@ -38,10 +38,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
 
   @Test
   void testBuildCallGraph_WithDependencies_LoadsExtension() throws Exception {
-    List<File> deps = Arrays.asList(mockitoDeps.listFiles());
+    List<File> deps = Arrays.asList(okhttpDeps.listFiles());
 
     CallGraph cg = builder.buildCallGraph(
-        mockitoJar.getPath(),
+        okhttpJar.getPath(),
         deps,
         null
     );
@@ -142,10 +142,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
 
   @Test
   void testEntryPoints_OnlyApplicationLoader() throws Exception {
-    List<File> deps = Arrays.asList(mockitoDeps.listFiles());
+    List<File> deps = Arrays.asList(okhttpDeps.listFiles());
 
     CallGraph cg = builder.buildCallGraph(
-        mockitoJar.getPath(),
+        okhttpJar.getPath(),
         deps,
         null
     );
