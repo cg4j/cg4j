@@ -1,0 +1,143 @@
+# Agent Guidelines for cg4j
+
+This document provides coding guidelines for AI agents working on the cg4j (Call Graph for Java) project.
+
+## Project Overview
+
+- **Language**: Java 11+
+- **Build Tool**: Maven 3.6+
+- **Main Package**: `io.drmir`
+- **Entry Point**: `io.drmir.Main`
+- **Artifact**: `cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar`
+
+## Build Commands
+
+```bash
+# Clean and build
+mvn clean package
+```
+
+### Testing
+
+**Note**: Currently no test framework is configured. To add tests:
+1. Add JUnit 5 dependency to `pom.xml`
+2. Add `maven-surefire-plugin` for test execution
+3. Create `src/test/java/io/drmir/` directory structure
+
+## Code Style Guidelines
+
+### Import Organization
+
+1. Group imports in this order with blank lines between:
+   - Third-party libraries (WALA, Picocli) - alphabetically sorted
+   - Java standard library - alphabetically sorted
+2. No wildcard imports (`import java.util.*;`) - use explicit imports only
+3. No unused imports
+
+### Formatting
+
+- **Indentation**: 2 spaces (no tabs)
+- **Line length**: ~100 characters (flexible for readability)
+- **Braces**: K&R style - opening brace on same line
+```java
+public void method() {
+  // code
+}
+```
+- **Spacing**: 
+  - Space after keywords: `if (condition)`, `for (int i = 0; ...)`
+  - Space around operators: `a + b`, `x = 5`
+  - No space between method name and parenthesis: `method(args)`
+
+### Naming Conventions
+
+- **Classes**: PascalCase - `Main`, `CallGraphBuilder`
+- **Methods**: camelCase - `buildCallGraph()`, `formatMethod()`
+- **Variables/Fields**: camelCase - `targetJar`, `outputCsv`
+- **Boolean methods**: Use `is` prefix - `isPublicClass()`, `isPublicMethod()`
+- **Constants**: Not many used; inline literals acceptable
+- Use descriptive names - avoid abbreviations except standard ones (e.g., `cg` for CallGraph)
+
+### Documentation
+
+**Required Javadoc**:
+- All public classes and methods
+- Brief one-line summaries preferred
+- No need for `@param`/`@return` tags for simple methods
+
+**Inline Comments**:
+- Use `//` style for single-line comments
+- Place before the code block they describe
+- Explain intent, not mechanics
+- Use for complex logic or non-obvious sections
+
+### Error Handling
+
+**Exception Strategy**:
+- Declare checked exceptions with `throws` - don't catch unnecessarily
+- Use `try-with-resources` for all auto-closeable resources
+
+**Validation**:
+- Validate inputs at start of methods
+- Provide user-friendly error messages
+
+**Error Messages**:
+- Use `System.err.println()` for errors/warnings
+- Prefix: `"Error: "` for errors, `"Warning: "` for warnings
+- Include context (file paths, specific issue)
+
+**Null Handling**:
+- Check for null before usage
+- No external null-assertion libraries
+
+
+### Code Organization
+
+- **One class per file** (except static inner classes)
+- **Access modifiers**: Public API is `public`, helpers are `private` or `private static`
+- **Method order**: Public methods first, then private helpers
+- **Validation first**: Input validation at start of methods
+
+### Modern Java Practices
+
+Use these Java 11+ features:
+- **Stream API** for collection processing
+- **Method references**: `this::methodName`
+- **Diamond operator**: `new ArrayList<>()`
+- **Try-with-resources** for auto-closeables
+- **Underscore separators** in numeric literals: `1_000_000`
+
+### Console Output
+
+- Use `System.out.println()` for user feedback
+- Include metrics and progress updates
+- Use `String.format("%.2f", value)` for decimal formatting
+- Blank lines (`\n`) to separate output sections
+
+## Dependencies
+
+Current dependencies (see `pom.xml`):
+- **IBM WALA Core** - Call graph analysis
+- **IBM WALA Util** - WALA utilities
+- **Picocli** - CLI framework
+
+When adding dependencies:
+- Use latest stable versions
+- Specify explicit versions (no version ranges)
+- Group related dependencies together
+
+## Don'ts
+
+- ❌ Don't use wildcard imports
+- ❌ Don't use tabs (use 2 spaces)
+- ❌ Don't catch exceptions unnecessarily
+- ❌ Don't use abbreviations in names (except standard: `cg`, `csv`)
+- ❌ Don't modify existing formatting style
+- ❌ Don't add null-assertion libraries
+- ❌ Don't use `TODO` comments without tracking
+
+## Git
+
+- `.gitignore` excludes: `target/`, `*.csv`
+- Commit message style: Not specified, use conventional style
+- No pre-commit hooks configured
