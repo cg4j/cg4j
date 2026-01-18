@@ -26,7 +26,6 @@ import java.util.stream.StreamSupport;
 
 /**
  * Builds call graphs using WALA with CHA-based analysis.
- * Based on ml4cgp_study implementation.
  */
 public class CallGraphBuilder {
 

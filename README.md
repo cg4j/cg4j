@@ -9,7 +9,6 @@ A command-line tool to build call graphs from Java JAR files using IBM WALA (T.J
 - Generates all public methods as entry points
 - Outputs call graph to CSV file
 - Clean CLI powered by picocli
-- Based on ml4cgp_study implementation
 
 ## Build
 
