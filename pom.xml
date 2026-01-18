@@ -45,7 +45,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>io.drmir.CallGraphDemo</mainClass>
+                            <mainClass>io.drmir.Main</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
@@ -67,7 +67,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>io.drmir.CallGraphDemo</mainClass>
+                    <mainClass>io.drmir.Main</mainClass>
                 </configuration>
             </plugin>
         </plugins>
