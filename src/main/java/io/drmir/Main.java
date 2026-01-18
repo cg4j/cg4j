@@ -1,6 +1,8 @@
 package io.drmir;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -28,6 +30,8 @@ import java.util.concurrent.Callable;
          description = "Builds call graphs from Java JAR files using WALA")
 public class Main implements Callable<Integer> {
 
+  private static final Logger logger = LogManager.getLogger(Main.class);
+
   @Parameters(index = "0", 
               description = "JAR file to analyze")
   private File targetJar;
@@ -50,7 +54,7 @@ public class Main implements Callable<Integer> {
   public Integer call() throws Exception {
     // Validate target JAR exists
     if (!targetJar.exists()) {
-      System.err.println("Error: Target JAR file not found: " + targetJar);
+      logger.error("Target JAR file not found: {}", targetJar);
       return 1;
     }
     
@@ -59,31 +63,31 @@ public class Main implements Callable<Integer> {
     if (depsDir != null) {
       if (depsDir.exists() && depsDir.isDirectory()) {
         dependencies = findJarsInDirectory(depsDir);
-        System.out.println("Found " + dependencies.size() + " dependency JARs");
+        logger.info("Found {} dependency JARs", dependencies.size());
       } else {
-        System.err.println("Warning: Dependencies directory not found: " + depsDir);
+        logger.warn("Dependencies directory not found: {}", depsDir);
       }
     }
     
     // Create exclusion file
     Path exclusionFile = createExclusionFile();
-    System.out.println("Created exclusion file: " + exclusionFile);
+    logger.info("Created exclusion file: {}", exclusionFile);
     
     // Build call graph
-    System.out.println("Building call graph with 0-CFA...");
+    logger.info("Building call graph with 0-CFA...");
     long startTime = System.nanoTime();
     
     CallGraphBuilder builder = new CallGraphBuilder();
     CallGraph cg = builder.buildCallGraph(targetJar.getPath(), dependencies, exclusionFile.toFile());
     
     double duration = (System.nanoTime() - startTime) / 1_000_000_000.0;
-    System.out.println("Call graph built in " + String.format("%.2f", duration) + " seconds");
-    System.out.println("Total nodes: " + cg.getNumberOfNodes());
+    logger.info("Call graph built in {} seconds", String.format("%.2f", duration));
+    logger.info("Total nodes: {}", cg.getNumberOfNodes());
     
     // Write call graph to CSV
-    System.out.println("\nWriting call graph to: " + outputCsv);
+    logger.info("\nWriting call graph to: {}", outputCsv);
     int edgeCount = writeCallGraphToCSV(cg, outputCsv);
-    System.out.println("Total edges written: " + edgeCount);
+    logger.info("Total edges written: {}", edgeCount);
     
     return 0;
   }

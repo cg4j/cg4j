@@ -29,7 +29,7 @@ mvn clean package
 ### Import Organization
 
 1. Group imports in this order with blank lines between:
-   - Third-party libraries (WALA, Picocli) - alphabetically sorted
+   - Third-party libraries (WALA, Picocli, Log4j) - alphabetically sorted
    - Java standard library - alphabetically sorted
 2. No wildcard imports (`import java.util.*;`) - use explicit imports only
 3. No unused imports
@@ -81,10 +81,12 @@ public void method() {
 - Validate inputs at start of methods
 - Provide user-friendly error messages
 
-**Error Messages**:
-- Use `System.err.println()` for errors/warnings
-- Prefix: `"Error: "` for errors, `"Warning: "` for warnings
-- Include context (file paths, specific issue)
+**Logging**:
+- Use Log4j for all logging (errors, warnings, info messages)
+- Use `logger.error()` for errors
+- Use `logger.warn()` for warnings
+- Use `logger.info()` for informational messages
+- Include context (file paths, specific issue) using parameterized logging: `logger.info("Message: {}", value)`
 
 **Null Handling**:
 - Check for null before usage
@@ -109,7 +111,7 @@ Use these Java 11+ features:
 
 ### Console Output
 
-- Use `System.out.println()` for user feedback
+- Use Log4j for console output via `logger.info()`
 - Include metrics and progress updates
 - Use `String.format("%.2f", value)` for decimal formatting
 - Blank lines (`\n`) to separate output sections
@@ -120,6 +122,8 @@ Current dependencies (see `pom.xml`):
 - **IBM WALA Core** - Call graph analysis
 - **IBM WALA Util** - WALA utilities
 - **Picocli** - CLI framework
+- **Log4j API** - Logging API
+- **Log4j Core** - Logging implementation
 
 When adding dependencies:
 - Use latest stable versions
