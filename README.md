@@ -1,6 +1,6 @@
-# Java Call Graph Demo with WALA
+# Java Call Graph with WALA
 
-A simple tool to build call graphs from Java JAR files using IBM WALA (T.J. Watson Libraries for Analysis).
+A command-line tool to build call graphs from Java JAR files using IBM WALA (T.J. Watson Libraries for Analysis).
 
 ## Features
 
@@ -8,6 +8,7 @@ A simple tool to build call graphs from Java JAR files using IBM WALA (T.J. Wats
 - Analyzes JAR files and their dependencies
 - Generates all public methods as entry points
 - Outputs call graph to CSV file
+- Clean CLI powered by picocli
 - Based on ml4cgp_study implementation
 
 ## Build
@@ -21,14 +22,38 @@ This creates `target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar`
 ## Usage
 
 ```bash
-# Basic usage (outputs to callgraph.csv)
-java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar <target.jar>
+Usage: java-cg-wala [-hV] [-d=<depsDir>] [-o=<outputCsv>] <targetJar>
 
-# Specify output file
-java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar <target.jar> <output.csv>
+Arguments:
+  <targetJar>              JAR file to analyze (required)
+
+Options:
+  -o, --output=<file>      Output CSV file (default: callgraph.csv)
+  -d, --deps=<dir>         Directory containing dependency JAR files
+  -h, --help               Show help message and exit
+  -V, --version            Print version information and exit
+```
+
+### Examples
+
+```bash
+# Basic usage - outputs to callgraph.csv
+java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar
+
+# Specify output file with short option
+java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar -o output.csv
+
+# Specify output file with long option
+java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar --output=output.csv
 
 # Include dependencies
-java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar <target.jar> <output.csv> <dependencies-dir>
+java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar -o output.csv -d lib/
+
+# Show help
+java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar --help
+
+# Show version
+java -jar target/java-cg-wala-1.0-SNAPSHOT-jar-with-dependencies.jar --version
 ```
 
 ## Output Format
