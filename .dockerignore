@@ -1,0 +1,36 @@
+# Maven artifacts
+target/
+*.jar
+
+# Git
+.git/
+.github/
+.gitignore
+
+# IDE files
+.settings/
+.classpath
+.project
+.factorypath
+*.iml
+.idea/
+
+# Build outputs
+*.csv
+callgraph.csv
+custom*.csv
+test-*.csv
+cgs/
+
+# Documentation (keep essential ones)
+docs/
+AGENTS.md
+
+# Test data
+dataset/
+
+# Coverage
+*.exec
+
+# Other
+opencode.json

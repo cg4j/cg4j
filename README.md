@@ -18,6 +18,71 @@ mvn clean package
 
 This creates `target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar`
 
+## Docker
+
+### Build Image
+
+```bash
+docker build -t cg4j:latest .
+```
+
+Build time: ~2-3 minutes (first build), ~30 seconds (subsequent)
+Image size: ~250 MB
+
+### Docker Usage
+
+**Basic analysis:**
+```bash
+docker run --rm \
+  -v $(pwd):/input:ro \
+  -v $(pwd):/output \
+  cg4j:latest /input/myapp.jar
+```
+
+**With dependencies:**
+```bash
+docker run --rm \
+  -v $(pwd):/input:ro \
+  -v $(pwd)/lib:/deps:ro \
+  -v $(pwd):/output \
+  cg4j:latest /input/myapp.jar -d /deps
+```
+
+**Custom output file:**
+```bash
+docker run --rm \
+  -v $(pwd):/input:ro \
+  -v $(pwd):/output \
+  cg4j:latest /input/myapp.jar -o /output/my-callgraph.csv
+```
+
+**Without Java runtime classes:**
+```bash
+docker run --rm \
+  -v $(pwd):/input:ro \
+  -v $(pwd):/output \
+  cg4j:latest /input/myapp.jar --include-rt=false
+```
+
+**Show help:**
+```bash
+docker run --rm cg4j:latest --help
+```
+
+### Volume Mounts
+
+| Mount | Purpose | Mode |
+|-------|---------|------|
+| `/input` | JAR files to analyze | read-only |
+| `/output` | Generated CSV files | read-write |
+| `/deps` | Dependency JARs (optional) | read-only |
+
+### Notes
+
+- Output CSV files appear in your current directory
+- Input JARs must be mounted under `/input`
+- Container runs as root but files written with host UID in most setups
+
 ## Usage
 
 ```bash
