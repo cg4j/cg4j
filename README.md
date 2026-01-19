@@ -11,6 +11,7 @@ A command-line tool to build call graphs from Java JAR files using IBM WALA (T.J
 - [Usage](#usage)
 - [Output Format](#output-format)
 - [Testing](#testing)
+- [Documentation](#documentation)
 
 ## Features
 
@@ -144,3 +145,7 @@ Test JARs are included in `src/test/resources/test-jars/`:
 **Total test resources: ~2.9 MB**
 
 These JARs are fixed versions and should not be updated.
+
+## Documentation
+
+**New to call graphs?** Read [Call Graph Basics](docs/CALLGRAPH-BASICS.md) to learn about CHA, 0-CFA, and how call graphs are built.
