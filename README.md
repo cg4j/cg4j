@@ -2,6 +2,16 @@
 
 A command-line tool to build call graphs from Java JAR files using IBM WALA (T.J. Watson Libraries for Analysis).
 
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Build](#build)
+- [Docker](#docker)
+- [Usage](#usage)
+- [Output Format](#output-format)
+- [Testing](#testing)
+
 ## Features
 
 - Builds 0-CFA call graphs using Class Hierarchy Analysis (CHA)
@@ -9,6 +19,12 @@ A command-line tool to build call graphs from Java JAR files using IBM WALA (T.J
 - Generates all public methods as entry points
 - Outputs call graph to CSV file
 - Clean CLI powered by picocli
+
+## Requirements
+
+- Java 11 or higher
+- Maven 3.6 or higher
+- Docker (optional, for containerized usage)
 
 ## Build
 
@@ -54,39 +70,17 @@ Default configuration (`.env`):
 ## Usage
 
 ```bash
-Usage: cg4j [-hV] [-d=<depsDir>] [-o=<outputCsv>] <targetJar>
-
-Arguments:
-  <targetJar>              JAR file to analyze (required)
-
-Options:
-  -o, --output=<file>      Output CSV file (default: callgraph.csv)
-  -d, --deps=<dir>         Directory containing dependency JAR files
-  -h, --help               Show help message and exit
-  -V, --version            Print version information and exit
-```
-
-### Examples
-
-```bash
 # Basic usage - outputs to callgraph.csv
 java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar
 
-# Specify output file with short option
-java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar -o output.csv
-
-# Specify output file with long option
-java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar --output=output.csv
-
-# Include dependencies
+# With dependencies and custom output
 java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar -o output.csv -d lib/
-
-# Show help
-java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar --help
-
-# Show version
-java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar --version
 ```
+
+**Options:**
+- `-o, --output=<file>` - Output CSV file (default: callgraph.csv)
+- `-d, --deps=<dir>` - Directory containing dependency JAR files
+- `-h, --help` - Show help message
 
 ## Output Format
 
@@ -102,11 +96,6 @@ source_method,target_method
 <boot>,org/slf4j/Logger.info:(Ljava/lang/String;)V
 org/slf4j/Logger.info:(Ljava/lang/String;)V,org/slf4j/helpers/MessageFormatter.format:(Ljava/lang/String;)Ljava/lang/String;
 ```
-
-## Requirements
-
-- Java 11 or higher
-- Maven 3.6 or higher
 
 ## Testing
 
