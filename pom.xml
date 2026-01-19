@@ -10,6 +10,16 @@
     <name>cg4j</name>
     <packaging>jar</packaging>
 
+    <description>Call Graph Generator for Java using IBM WALA - 0-CFA analysis with CHA</description>
+    <url>https://github.com/mir-am/cg4j</url>
+
+    <developers>
+        <developer>
+            <name>Amir M. Mir</name>
+            <email>dev@cg4j.net</email>
+        </developer>
+    </developers>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>

@@ -115,4 +115,5 @@ Test data: `src/test/resources/test-jars/`
 
 ## Documentation
 
-**New to call graphs?** Read [Call Graph Basics](docs/CALLGRAPH-BASICS.md) to learn about CHA, 0-CFA, and how call graphs are built.
+- **New to call graphs?** Read [Call Graph Basics](docs/CALLGRAPH-BASICS.md) to learn about CHA, 0-CFA, and how call graphs are built.
+- **System architecture:** See [Architecture](docs/ARCHITECTURE.md) for the internal design and data flow.
