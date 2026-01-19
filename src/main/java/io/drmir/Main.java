@@ -17,9 +17,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 /**
  * Main entry point for the call graph generation tool.
@@ -108,12 +109,13 @@ public class Main implements Callable<Integer> {
     try (PrintWriter writer = new PrintWriter(new FileWriter(outputFile))) {
       writer.println("source_method,target_method");
       
-      Iterator<CallGraphBuilder.CallGraphEdge> edges = CallGraphBuilder.extractEdges(cg, includeRt);
-      while (edges.hasNext()) {
-        CallGraphBuilder.CallGraphEdge edge = edges.next();
+      AtomicInteger edgeCounter = new AtomicInteger(0);
+      Stream<CallGraphBuilder.CallGraphEdge> edges = CallGraphBuilder.extractEdgesAsStream(cg, includeRt);
+      edges.forEach(edge -> {
         writer.println(edge.source + "," + edge.target);
-        edgeCount++;
-      }
+        edgeCounter.incrementAndGet();
+      });
+      edgeCount = edgeCounter.get();
     }
     
     return edgeCount;

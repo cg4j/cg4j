@@ -8,8 +8,8 @@ import org.junit.jupiter.api.TestInstance;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -74,26 +74,26 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
   }
 
   /**
-   * Tests edge extraction produces valid method signature format.
-   * Expects edges with package.Class.method:(descriptor) format.
+   * Unit test: Tests stream-based edge extraction returns edges.
+   * Expects at least one edge with non-empty source and target.
    */
   @Test
-  void testExtractEdges_ProducesValidFormat() throws Exception {
+  void testExtractEdgesAsStream_ReturnsNonEmptyStream() throws Exception {
     CallGraph cg = builder.buildCallGraph(
         slf4jJar.getPath(),
         Collections.emptyList(),
         null
     );
 
-    Iterator<CallGraphBuilder.CallGraphEdge> edges =
-        CallGraphBuilder.extractEdges(cg, false);
+    Stream<CallGraphBuilder.CallGraphEdge> edges =
+        CallGraphBuilder.extractEdgesAsStream(cg, false);
 
-    assertThat(edges.hasNext()).isTrue();
-
-    CallGraphBuilder.CallGraphEdge edge = edges.next();
+    CallGraphBuilder.CallGraphEdge edge = edges.findFirst()
+        .orElseThrow(() -> new AssertionError("Expected at least one edge"));
+    
     assertThat(edge.source).isNotEmpty();
     assertThat(edge.target).isNotEmpty();
-    assertThat(edge.source).contains(".");  // Has package
+    assertThat(edge.source).contains(".");
     assertThat(edge.target).contains(".");
   }
 
@@ -102,21 +102,21 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
    * Expects no java/* classes in extracted edges when includeRT=false.
    */
   @Test
-  void testExtractEdges_FiltersRTWhenDisabled() throws Exception {
+  void testExtractEdgesAsStream_FiltersRTWhenDisabled() throws Exception {
     CallGraph cg = builder.buildCallGraph(
         slf4jJar.getPath(),
         Collections.emptyList(),
         null
     );
 
-    Iterator<CallGraphBuilder.CallGraphEdge> edges =
-        CallGraphBuilder.extractEdges(cg, false);
+    Stream<CallGraphBuilder.CallGraphEdge> edges =
+        CallGraphBuilder.extractEdgesAsStream(cg, false);
 
-    while (edges.hasNext()) {
-      CallGraphBuilder.CallGraphEdge edge = edges.next();
-      assertThat(edge.source).doesNotStartWith("java/");
-      assertThat(edge.target).doesNotStartWith("java/");
-    }
+    boolean hasRTEdge = edges.anyMatch(edge -> 
+        edge.source.startsWith("java/") || edge.target.startsWith("java/")
+    );
+
+    assertThat(hasRTEdge).isFalse();
   }
 
   /**
@@ -124,24 +124,19 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
    * Expects at least one java/* class in extracted edges when includeRT=true.
    */
   @Test
-  void testExtractEdges_IncludesRTWhenEnabled() throws Exception {
+  void testExtractEdgesAsStream_IncludesRTWhenEnabled() throws Exception {
     CallGraph cg = builder.buildCallGraph(
         slf4jJar.getPath(),
         Collections.emptyList(),
         null
     );
 
-    Iterator<CallGraphBuilder.CallGraphEdge> edges =
-        CallGraphBuilder.extractEdges(cg, true);
+    Stream<CallGraphBuilder.CallGraphEdge> edges =
+        CallGraphBuilder.extractEdgesAsStream(cg, true);
 
-    boolean foundRTEdge = false;
-    while (edges.hasNext()) {
-      CallGraphBuilder.CallGraphEdge edge = edges.next();
-      if (edge.source.startsWith("java/") || edge.target.startsWith("java/")) {
-        foundRTEdge = true;
-        break;
-      }
-    }
+    boolean foundRTEdge = edges.anyMatch(edge -> 
+        edge.source.startsWith("java/") || edge.target.startsWith("java/")
+    );
 
     assertThat(foundRTEdge).isTrue();
   }
@@ -158,10 +153,11 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
         null
     );
 
-    Iterator<CallGraphBuilder.CallGraphEdge> edges =
-        CallGraphBuilder.extractEdges(cg, false);
+    Stream<CallGraphBuilder.CallGraphEdge> edges =
+        CallGraphBuilder.extractEdgesAsStream(cg, false);
 
-    CallGraphBuilder.CallGraphEdge edge = edges.next();
+    CallGraphBuilder.CallGraphEdge edge = edges.findFirst()
+        .orElseThrow(() -> new AssertionError("Expected at least one edge"));
 
     // Verify format: contains package, class, method, and descriptor
     assertThat(edge.source).matches(".+\\..+:.+");

@@ -20,8 +20,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
@@ -141,88 +144,104 @@ public class CallGraphBuilder {
   }
 
   /**
-   * Extracts call graph edges as an iterator for processing.
-   * 
-   * @param includeRt if false, filters out edges where source or target is from Primordial loader
+   * Checks if target URI should be skipped (null or fake clinit).
    */
-  public static Iterator<CallGraphEdge> extractEdges(CallGraph cg, boolean includeRt) {
-    return new Iterator<CallGraphEdge>() {
-      private final Iterator<CGNode> nodeIterator = cg.iterator();
-      private CGNode currentSource;
-      private Iterator<CGNode> currentTargets;
-      private CallGraphEdge nextEdge;
+  private static boolean shouldSkipTarget(String targetUri) {
+    return targetUri == null || 
+           targetUri.equals("com/ibm/wala/FakeRootClass.fakeWorldClinit:()V");
+  }
 
-      @Override
-      public boolean hasNext() {
-        if (nextEdge != null) return true;
+  /**
+   * Normalizes source URI, converting fake root methods to <boot>.
+   */
+  private static String normalizeSourceUri(String sourceUri) {
+    if (sourceUri.equals("com/ibm/wala/FakeRootClass.fakeRootMethod:()V") ||
+        sourceUri.equals("com/ibm/wala/FakeRootClass.fakeWorldClinit:()V")) {
+      return "<boot>";
+    }
+    return sourceUri;
+  }
+
+  /**
+   * Checks if edge should be filtered based on RT (Primordial) loader.
+   */
+  private static boolean shouldFilterRtEdge(IMethod sourceMethod, IMethod targetMethod, boolean includeRt) {
+    if (includeRt) {
+      return false; // Don't filter anything
+    }
+    
+    ClassLoaderReference sourceLoader = sourceMethod.getDeclaringClass().getClassLoader().getReference();
+    ClassLoaderReference targetLoader = targetMethod.getDeclaringClass().getClassLoader().getReference();
+    
+    boolean sourceIsPrimordial = sourceLoader.equals(ClassLoaderReference.Primordial);
+    boolean targetIsPrimordial = targetLoader.equals(ClassLoaderReference.Primordial);
+    
+    // Filter out if either source or target is Primordial
+    return sourceIsPrimordial || targetIsPrimordial;
+  }
+
+  /**
+   * Extracts call graph edges as a stream for processing.
+   * 
+   * @param cg Call graph to extract edges from
+   * @param includeRt if false, filters out edges where source or target is from Primordial loader
+   * @return Stream of call graph edges (lazy evaluation)
+   */
+  public static Stream<CallGraphEdge> extractEdgesAsStream(CallGraph cg, boolean includeRt) {
+    return StreamSupport.stream(
+        Spliterators.spliteratorUnknownSize(cg.iterator(), Spliterator.ORDERED),
+        false
+      )
+      .flatMap(sourceNode -> {
+        IMethod sourceMethod = sourceNode.getMethod();
+        TypeName sourceType = sourceMethod.getDeclaringClass().getName();
+        Selector sourceSelector = sourceMethod.getSelector();
+        String sourceUri = formatMethod(sourceType, sourceSelector);
         
-        while (true) {
-          // If we have targets for current source, try to get next target
-          if (currentTargets != null && currentTargets.hasNext()) {
-            CGNode targetNode = currentTargets.next();
+        // Skip if source cannot be formatted
+        if (sourceUri == null) {
+          return Stream.empty();
+        }
+        
+        // Normalize source (convert fake root to <boot>)
+        String normalizedSourceUri = normalizeSourceUri(sourceUri);
+        
+        // Get successor nodes (targets) for this source
+        Iterator<CGNode> targets = cg.getSuccNodes(sourceNode);
+        
+        return StreamSupport.stream(
+            Spliterators.spliteratorUnknownSize(targets, Spliterator.ORDERED),
+            false
+          )
+          .map(targetNode -> {
             IMethod targetMethod = targetNode.getMethod();
             TypeName targetType = targetMethod.getDeclaringClass().getName();
             Selector targetSelector = targetMethod.getSelector();
-            
             String targetUri = formatMethod(targetType, targetSelector);
-            if (targetUri == null || 
-                targetUri.equals("com/ibm/wala/FakeRootClass.fakeWorldClinit:()V")) {
-              continue; // Skip this target
-            }
             
-            // Get source info
-            IMethod sourceMethod = currentSource.getMethod();
-            TypeName sourceType = sourceMethod.getDeclaringClass().getName();
-            Selector sourceSelector = sourceMethod.getSelector();
-            String sourceUri = formatMethod(sourceType, sourceSelector);
-            if (sourceUri == null) continue;
-            
-            // Check if boot method
-            boolean isBootMethod = sourceUri.equals("com/ibm/wala/FakeRootClass.fakeRootMethod:()V") ||
-                                  sourceUri.equals("com/ibm/wala/FakeRootClass.fakeWorldClinit:()V");
-            if (isBootMethod) {
-              sourceUri = "<boot>";
-            }
-            
-            // Filter RT edges if includeRt is false
-            if (!includeRt) {
-              // Check if source or target is from Primordial loader
-              ClassLoaderReference sourceLoader = sourceMethod.getDeclaringClass().getClassLoader().getReference();
-              ClassLoaderReference targetLoader = targetMethod.getDeclaringClass().getClassLoader().getReference();
-              
-              boolean sourceIsPrimordial = sourceLoader.equals(ClassLoaderReference.Primordial);
-              boolean targetIsPrimordial = targetLoader.equals(ClassLoaderReference.Primordial);
-              
-              // Skip edges that involve Primordial (RT) classes
-              if (sourceIsPrimordial || targetIsPrimordial) {
-                continue;
-              }
-            }
-            
-            nextEdge = new CallGraphEdge(sourceUri, targetUri);
-            return true;
-          }
-          
-          // Get next source node
-          if (nodeIterator.hasNext()) {
-            currentSource = nodeIterator.next();
-            currentTargets = cg.getSuccNodes(currentSource);
-          } else {
-            return false; // No more nodes
-          }
-        }
-      }
+            return new EdgeCandidate(normalizedSourceUri, targetUri, sourceMethod, targetMethod);
+          })
+          .filter(candidate -> !shouldSkipTarget(candidate.targetUri))
+          .filter(candidate -> !shouldFilterRtEdge(candidate.sourceMethod, candidate.targetMethod, includeRt))
+          .map(candidate -> new CallGraphEdge(candidate.sourceUri, candidate.targetUri));
+      });
+  }
 
-      @Override
-      public CallGraphEdge next() {
-        if (!hasNext()) {
-          throw new java.util.NoSuchElementException();
-        }
-        CallGraphEdge edge = nextEdge;
-        nextEdge = null;
-        return edge;
-      }
-    };
+  /**
+   * Temporary holder for edge candidate during stream processing.
+   */
+  private static class EdgeCandidate {
+    final String sourceUri;
+    final String targetUri;
+    final IMethod sourceMethod;
+    final IMethod targetMethod;
+    
+    EdgeCandidate(String sourceUri, String targetUri, IMethod sourceMethod, IMethod targetMethod) {
+      this.sourceUri = sourceUri;
+      this.targetUri = targetUri;
+      this.sourceMethod = sourceMethod;
+      this.targetMethod = targetMethod;
+    }
   }
 
   /**
