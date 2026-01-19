@@ -100,51 +100,18 @@ org/slf4j/Logger.info:(Ljava/lang/String;)V,org/slf4j/helpers/MessageFormatter.f
 
 ## Testing
 
-### Running Tests
-
 ```bash
-# Run all tests
+# Run tests
 mvn test
-
-# Run specific test class
-mvn test -Dtest=IntegrationTest
-
-# Run specific test method
-mvn test -Dtest=IntegrationTest#testAppOnly_NoRT_Slf4j
 
 # Run tests with coverage report
 mvn clean test jacoco:report
 
-# View HTML coverage report
-open target/site/jacoco/index.html
-
-# Get coverage percentage from report
+# Check coverage percentage
 grep -oP '<tfoot>.*?<td class="ctr2">\K[0-9]+%' target/site/jacoco/index.html | head -1
-
-# View XML coverage report (for CI)
-cat target/site/jacoco/jacoco.xml
 ```
 
-### Test Structure
-
-The project includes comprehensive tests with 90% code coverage target:
-
-- **Unit Tests** (`CallGraphBuilderTest.java`): 9 tests covering CallGraphBuilder internals
-- **Integration Tests** (`IntegrationTest.java`): 12 tests covering end-to-end scenarios
-- **Parallel Execution**: Tests run concurrently using JUnit 5 for faster execution (~30% speedup)
-
-### Test Resources
-
-Test JARs are included in `src/test/resources/test-jars/`:
-- `slf4j-api-2.0.17.jar` - Simple library (69 KB)
-- `okhttp-jvm-5.3.2.jar` - HTTP client library (849 KB)
-- `deps/` - OkHttp dependencies (~2.1 MB)
-  - `kotlin-stdlib-2.2.21.jar`
-  - `okio-jvm-3.16.4.jar`
-
-**Total test resources: ~2.9 MB**
-
-These JARs are fixed versions and should not be updated.
+Test data: `src/test/resources/test-jars/`
 
 ## Documentation
 
