@@ -16,3 +16,6 @@ target/site/jacoco/
 
 # Test temporary files
 **/target/test-output/
+
+# Environment variables
+.env

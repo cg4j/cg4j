@@ -20,68 +20,36 @@ This creates `target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar`
 
 ## Docker
 
-### Build Image
+### Build and Run
 
 ```bash
+# Build image
 docker build -t cg4j:latest .
-```
 
-Build time: ~2-3 minutes (first build), ~30 seconds (subsequent)
-Image size: ~250 MB
-
-### Docker Usage
-
-**Basic analysis:**
-```bash
+# Run analysis
 docker run --rm \
   -v $(pwd):/input:ro \
   -v $(pwd):/output \
-  cg4j:latest /input/myapp.jar
+  cg4j:latest -o /output/callgraph.csv /input/myapp.jar
 ```
 
-**With dependencies:**
+### Docker Compose
+
 ```bash
-docker run --rm \
-  -v $(pwd):/input:ro \
-  -v $(pwd)/lib:/deps:ro \
-  -v $(pwd):/output \
-  cg4j:latest /input/myapp.jar -d /deps
+# Configure paths (first time only)
+cp .env.example .env
+# Edit .env to set INPUT_DIR and OUTPUT_DIR
+
+# Run analysis
+docker-compose run --rm cg4j -o /output/callgraph.csv /input/myapp.jar
+
+# Show help
+docker-compose run --rm cg4j --help
 ```
 
-**Custom output file:**
-```bash
-docker run --rm \
-  -v $(pwd):/input:ro \
-  -v $(pwd):/output \
-  cg4j:latest /input/myapp.jar -o /output/my-callgraph.csv
-```
-
-**Without Java runtime classes:**
-```bash
-docker run --rm \
-  -v $(pwd):/input:ro \
-  -v $(pwd):/output \
-  cg4j:latest /input/myapp.jar --include-rt=false
-```
-
-**Show help:**
-```bash
-docker run --rm cg4j:latest --help
-```
-
-### Volume Mounts
-
-| Mount | Purpose | Mode |
-|-------|---------|------|
-| `/input` | JAR files to analyze | read-only |
-| `/output` | Generated CSV files | read-write |
-| `/deps` | Dependency JARs (optional) | read-only |
-
-### Notes
-
-- Output CSV files appear in your current directory
-- Input JARs must be mounted under `/input`
-- Container runs as root but files written with host UID in most setups
+Default configuration (`.env`):
+- Input: `./src/test/resources/test-jars`
+- Output: `/tmp/cg4j-output`
 
 ## Usage
 
