@@ -1,4 +1,4 @@
-# cg4j - Call Graph for Java
+# CG4j - Call Graph Generation for Java
 
 A command-line tool to build call graphs from Java JAR files using IBM WALA (T.J. Watson Libraries for Analysis).
 
