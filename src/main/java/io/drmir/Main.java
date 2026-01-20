@@ -1,6 +1,8 @@
 package io.drmir;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import io.drmir.asm.AsmCallGraphBuilder;
+import io.drmir.asm.CallGraphResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import picocli.CommandLine;
@@ -25,10 +27,10 @@ import java.util.stream.Stream;
 /**
  * Main entry point for the call graph generation tool.
  */
-@Command(name = "cg4j", 
+@Command(name = "cg4j",
          mixinStandardHelpOptions = true,
          version = "1.0-SNAPSHOT",
-         description = "Builds call graphs from Java JAR files using WALA")
+         description = "Builds call graphs from Java JAR files using WALA or ASM")
 public class Main implements Callable<Integer> {
 
   private static final Logger logger = LogManager.getLogger(Main.class);
@@ -46,10 +48,15 @@ public class Main implements Callable<Integer> {
           description = "Directory containing dependency JAR files")
   private File depsDir;
 
-  @Option(names = {"--include-rt"}, 
+  @Option(names = {"--include-rt"},
           description = "Include Java Runtime (RT) jar in call graph analysis (default: ${DEFAULT-VALUE})",
           defaultValue = "true")
   private boolean includeRt;
+
+  @Option(names = {"--engine"},
+          description = "Call graph engine: wala or asm (default: ${DEFAULT-VALUE})",
+          defaultValue = "wala")
+  private String engine;
 
   public static void main(String[] args) {
     int exitCode = new CommandLine(new Main()).execute(args);
@@ -63,7 +70,13 @@ public class Main implements Callable<Integer> {
       logger.error("Target JAR file not found: {}", targetJar);
       return 1;
     }
-    
+
+    // Validate engine option
+    if (!engine.equals("wala") && !engine.equals("asm")) {
+      logger.error("Invalid engine: {}. Must be 'wala' or 'asm'", engine);
+      return 1;
+    }
+
     // Find JAR dependencies
     List<File> dependencies = new ArrayList<>();
     if (depsDir != null) {
@@ -74,28 +87,70 @@ public class Main implements Callable<Integer> {
         logger.warn("Dependencies directory not found: {}", depsDir);
       }
     }
-    
+
+    logger.info("Building call graph with engine={} (includeRt={})...", engine, includeRt);
+    long startTime = System.nanoTime();
+
+    int edgeCount;
+    if (engine.equals("asm")) {
+      edgeCount = buildWithAsm(dependencies);
+    } else {
+      edgeCount = buildWithWala(dependencies);
+    }
+
+    double duration = (System.nanoTime() - startTime) / 1_000_000_000.0;
+    logger.info("Call graph built in {} seconds", String.format("%.2f", duration));
+    logger.info("Total edges written: {}", edgeCount);
+
+    return 0;
+  }
+
+  /**
+   * Builds call graph using WALA engine.
+   */
+  private int buildWithWala(List<File> dependencies) throws Exception {
     // Create exclusion file
     Path exclusionFile = createExclusionFile();
     logger.info("Created exclusion file: {}", exclusionFile);
-    
-    // Build call graph
-    logger.info("Building call graph with 0-CFA (includeRt={})...", includeRt);
-    long startTime = System.nanoTime();
-    
+
     CallGraphBuilder builder = new CallGraphBuilder();
     CallGraph cg = builder.buildCallGraph(targetJar.getPath(), dependencies, exclusionFile.toFile());
-    
-    double duration = (System.nanoTime() - startTime) / 1_000_000_000.0;
-    logger.info("Call graph built in {} seconds", String.format("%.2f", duration));
     logger.info("Total nodes: {}", cg.getNumberOfNodes());
-    
+
     // Write call graph to CSV
-    logger.info("\nWriting call graph to: {}", outputCsv);
-    int edgeCount = writeCallGraphToCSV(cg, outputCsv, includeRt);
-    logger.info("Total edges written: {}", edgeCount);
-    
-    return 0;
+    logger.info("Writing call graph to: {}", outputCsv);
+    return writeCallGraphToCSV(cg, outputCsv, includeRt);
+  }
+
+  /**
+   * Builds call graph using ASM engine.
+   */
+  private int buildWithAsm(List<File> dependencies) throws Exception {
+    AsmCallGraphBuilder builder = new AsmCallGraphBuilder();
+    CallGraphResult result = builder.buildCallGraph(targetJar.getPath(), dependencies, includeRt);
+    logger.info("Total reachable methods: {}", result.getReachableMethods().size());
+
+    // Write call graph to CSV
+    logger.info("Writing call graph to: {}", outputCsv);
+    return writeAsmCallGraphToCSV(result, outputCsv);
+  }
+
+  /**
+   * Writes ASM call graph result to CSV file.
+   */
+  private static int writeAsmCallGraphToCSV(CallGraphResult result, String outputFile)
+      throws IOException {
+    try (PrintWriter writer = new PrintWriter(new FileWriter(outputFile))) {
+      writer.println("source_method,target_method");
+
+      for (CallGraphResult.Edge edge : result.getEdges()) {
+        String sourceUri = edge.getSource().toUri();
+        String targetUri = edge.getTarget().toUri();
+        writer.println(sourceUri + "," + targetUri);
+      }
+    }
+
+    return result.getEdgeCount();
   }
 
   /**
