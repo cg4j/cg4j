@@ -19,3 +19,6 @@ target/site/jacoco/
 
 # Environment variables
 .env
+
+# Site (MkDocs)
+site
