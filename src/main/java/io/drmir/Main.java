@@ -58,6 +58,11 @@ public class Main implements Callable<Integer> {
           defaultValue = "wala")
   private String engine;
 
+  @Option(names = {"--algorithm"},
+          description = "Algorithm for ASM engine: cha or rta (default: ${DEFAULT-VALUE})",
+          defaultValue = "cha")
+  private String algorithm;
+
   public static void main(String[] args) {
     int exitCode = new CommandLine(new Main()).execute(args);
     System.exit(exitCode);
@@ -77,6 +82,12 @@ public class Main implements Callable<Integer> {
       return 1;
     }
 
+    // Validate algorithm option
+    if (!algorithm.equals("cha") && !algorithm.equals("rta")) {
+      logger.error("Invalid algorithm: {}. Must be 'cha' or 'rta'", algorithm);
+      return 1;
+    }
+
     // Find JAR dependencies
     List<File> dependencies = new ArrayList<>();
     if (depsDir != null) {
@@ -88,7 +99,8 @@ public class Main implements Callable<Integer> {
       }
     }
 
-    logger.info("Building call graph with engine={} (includeRt={})...", engine, includeRt);
+    logger.info("Building call graph with engine={}, algorithm={} (includeRt={})...",
+        engine, algorithm, includeRt);
     long startTime = System.nanoTime();
 
     int edgeCount;
@@ -127,7 +139,10 @@ public class Main implements Callable<Integer> {
    */
   private int buildWithAsm(List<File> dependencies) throws Exception {
     AsmCallGraphBuilder builder = new AsmCallGraphBuilder();
-    CallGraphResult result = builder.buildCallGraph(targetJar.getPath(), dependencies, includeRt);
+    AsmCallGraphBuilder.Algorithm algo = algorithm.equals("rta")
+        ? AsmCallGraphBuilder.Algorithm.RTA
+        : AsmCallGraphBuilder.Algorithm.CHA;
+    CallGraphResult result = builder.buildCallGraph(targetJar.getPath(), dependencies, includeRt, algo);
     logger.info("Total reachable methods: {}", result.getReachableMethods().size());
 
     // Write call graph to CSV

@@ -1,5 +1,7 @@
 package io.drmir.asm;
 
+import org.objectweb.asm.Opcodes;
+
 import java.util.Objects;
 
 /**
@@ -10,6 +12,7 @@ public final class MethodSignature {
   private final String owner;
   private final String name;
   private final String descriptor;
+  private final int access;
 
   /**
    * Creates a method signature.
@@ -19,9 +22,22 @@ public final class MethodSignature {
    * @param descriptor method descriptor (e.g., "(Ljava/lang/String;)V")
    */
   public MethodSignature(String owner, String name, String descriptor) {
+    this(owner, name, descriptor, 0);
+  }
+
+  /**
+   * Creates a method signature with access flags.
+   *
+   * @param owner class name in internal format (e.g., "java/lang/String")
+   * @param name method name
+   * @param descriptor method descriptor (e.g., "(Ljava/lang/String;)V")
+   * @param access method access flags (e.g., ACC_PUBLIC | ACC_STATIC)
+   */
+  public MethodSignature(String owner, String name, String descriptor, int access) {
     this.owner = owner;
     this.name = name;
     this.descriptor = descriptor;
+    this.access = access;
   }
 
   public String getOwner() {
@@ -34,6 +50,34 @@ public final class MethodSignature {
 
   public String getDescriptor() {
     return descriptor;
+  }
+
+  /**
+   * Returns the method access flags.
+   */
+  public int getAccess() {
+    return access;
+  }
+
+  /**
+   * Returns true if this method is public.
+   */
+  public boolean isPublic() {
+    return (access & Opcodes.ACC_PUBLIC) != 0;
+  }
+
+  /**
+   * Returns true if this method is abstract.
+   */
+  public boolean isAbstract() {
+    return (access & Opcodes.ACC_ABSTRACT) != 0;
+  }
+
+  /**
+   * Returns true if this method is static.
+   */
+  public boolean isStatic() {
+    return (access & Opcodes.ACC_STATIC) != 0;
   }
 
   /**

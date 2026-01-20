@@ -44,7 +44,7 @@ public final class ClassInfoVisitor extends ClassVisitor {
   @Override
   public MethodVisitor visitMethod(int access, String name, String descriptor,
                                    String signature, String[] exceptions) {
-    methods.add(new MethodSignature(this.name, name, descriptor));
+    methods.add(new MethodSignature(this.name, name, descriptor, access));
     // We don't need to visit method body for class info extraction
     return null;
   }

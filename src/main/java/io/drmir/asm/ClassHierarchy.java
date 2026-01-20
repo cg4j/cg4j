@@ -188,6 +188,67 @@ public final class ClassHierarchy {
   }
 
   /**
+   * Resolves a virtual call using RTA (Rapid Type Analysis).
+   * Only considers types that have been instantiated.
+   *
+   * @param receiverType the declared receiver type
+   * @param methodName the method name
+   * @param descriptor the method descriptor
+   * @param instantiatedTypes set of types that have been instantiated via NEW
+   * @return set of possible target methods
+   */
+  public Set<MethodSignature> resolveVirtualCallRTA(String receiverType, String methodName,
+                                                     String descriptor,
+                                                     Set<String> instantiatedTypes) {
+    Set<MethodSignature> targets = new HashSet<>();
+
+    Set<String> subtypes = getAllSubtypes(receiverType);
+    for (String subtype : subtypes) {
+      // RTA: only consider instantiated types
+      if (!instantiatedTypes.contains(subtype)) {
+        continue;
+      }
+
+      ClassInfo info = classes.get(subtype);
+      if (info == null) {
+        continue;
+      }
+
+      // Skip abstract classes and interfaces for virtual call targets
+      if (info.isAbstract() || info.isInterface()) {
+        continue;
+      }
+
+      // Look up the method (may be inherited)
+      MethodSignature method = lookupMethod(subtype, methodName, descriptor);
+      if (method != null) {
+        targets.add(method);
+      }
+    }
+
+    return targets;
+  }
+
+  /**
+   * Resolves a call site to its possible targets using RTA.
+   *
+   * @param callSite the call site to resolve
+   * @param instantiatedTypes set of types that have been instantiated via NEW
+   * @return set of possible target methods
+   */
+  public Set<MethodSignature> resolveCallSiteRTA(CallSite callSite, Set<String> instantiatedTypes) {
+    if (callSite.isStatic() || callSite.isSpecial()) {
+      return resolveStaticOrSpecialCall(callSite.getOwner(), callSite.getName(),
+          callSite.getDescriptor());
+    } else if (callSite.isVirtual()) {
+      return resolveVirtualCallRTA(callSite.getOwner(), callSite.getName(),
+          callSite.getDescriptor(), instantiatedTypes);
+    }
+    // Unknown opcode
+    return Collections.emptySet();
+  }
+
+  /**
    * Resolves a static or special (constructor/private/super) call.
    * Returns exactly one target method or empty set if not found.
    *

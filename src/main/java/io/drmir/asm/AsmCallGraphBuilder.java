@@ -22,18 +22,28 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 /**
- * Builds call graphs using ASM with CHA-based virtual call resolution.
+ * Builds call graphs using ASM with CHA or RTA-based virtual call resolution.
  */
 public final class AsmCallGraphBuilder {
 
   private static final Logger logger = LogManager.getLogger(AsmCallGraphBuilder.class);
   private static final int PARSE_OPTIONS = ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES;
 
+  /**
+   * Call graph algorithm to use.
+   */
+  public enum Algorithm {
+    /** Class Hierarchy Analysis - resolves to all possible subtypes. */
+    CHA,
+    /** Rapid Type Analysis - resolves to only instantiated subtypes. */
+    RTA
+  }
+
   private ClassHierarchy hierarchy;
   private Map<String, byte[]> classBytecode;
 
   /**
-   * Builds a CHA-based call graph for the given JAR file.
+   * Builds a call graph for the given JAR file using CHA algorithm.
    *
    * @param jarFile the target JAR to analyze
    * @param dependencies list of dependency JAR files
@@ -41,6 +51,21 @@ public final class AsmCallGraphBuilder {
    * @return the call graph result
    */
   public CallGraphResult buildCallGraph(String jarFile, List<File> dependencies, boolean includeRt)
+      throws IOException {
+    return buildCallGraph(jarFile, dependencies, includeRt, Algorithm.CHA);
+  }
+
+  /**
+   * Builds a call graph for the given JAR file.
+   *
+   * @param jarFile the target JAR to analyze
+   * @param dependencies list of dependency JAR files
+   * @param includeRt whether to include JDK classes in the output
+   * @param algorithm the call graph algorithm to use (CHA or RTA)
+   * @return the call graph result
+   */
+  public CallGraphResult buildCallGraph(String jarFile, List<File> dependencies, boolean includeRt,
+                                         Algorithm algorithm)
       throws IOException {
     logger.info("Loading classes...");
 
@@ -82,8 +107,8 @@ public final class AsmCallGraphBuilder {
     }
 
     // Step 4: Run worklist algorithm
-    logger.info("Running worklist algorithm...");
-    WorklistResult result = runWorklist(entryPoints);
+    logger.info("Running worklist algorithm with {} algorithm...", algorithm);
+    WorklistResult result = runWorklist(entryPoints, algorithm);
 
     // Step 5: Filter edges if needed
     Set<CallGraphResult.Edge> edges = result.edges;
@@ -109,9 +134,10 @@ public final class AsmCallGraphBuilder {
       }
 
       for (MethodSignature method : classInfo.getMethods()) {
-        // Include all methods from application classes as potential entry points
-        // The actual public/non-abstract filtering happens during lookup
-        entryPoints.add(method);
+        // Only include public, non-abstract methods as entry points
+        if (method.isPublic() && !method.isAbstract()) {
+          entryPoints.add(method);
+        }
       }
     }
 
@@ -120,11 +146,26 @@ public final class AsmCallGraphBuilder {
 
   /**
    * Runs the worklist algorithm to compute reachable methods and call edges.
+   *
+   * @param entryPoints the set of entry point methods
+   * @param algorithm the call graph algorithm to use (CHA or RTA)
+   * @return the worklist result containing reachable methods and edges
    */
-  private WorklistResult runWorklist(Set<MethodSignature> entryPoints) {
+  private WorklistResult runWorklist(Set<MethodSignature> entryPoints, Algorithm algorithm) {
     Set<MethodSignature> reachable = new HashSet<>();
     Set<CallGraphResult.Edge> edges = new HashSet<>();
     Deque<MethodSignature> worklist = new ArrayDeque<>(entryPoints);
+
+    // For RTA: track instantiated types
+    Set<String> instantiatedTypes = new HashSet<>();
+    boolean useRta = (algorithm == Algorithm.RTA);
+
+    if (useRta) {
+      // Entry point classes are considered instantiated
+      for (MethodSignature entry : entryPoints) {
+        instantiatedTypes.add(entry.getOwner());
+      }
+    }
 
     // Add synthetic boot entry point
     MethodSignature bootMethod = new MethodSignature("<boot>", "fakeRoot", "()V");
@@ -148,11 +189,20 @@ public final class AsmCallGraphBuilder {
         logger.debug("Processed {} methods, worklist size: {}", processedCount, worklist.size());
       }
 
-      // Extract call sites from this method
-      List<CallSite> callSites = extractCallSites(method);
+      // Extract call sites (and instantiated types for RTA)
+      MethodAnalysisResult analysisResult = analyzeMethod(method);
 
-      for (CallSite callSite : callSites) {
-        Set<MethodSignature> targets = hierarchy.resolveCallSite(callSite);
+      if (useRta) {
+        instantiatedTypes.addAll(analysisResult.instantiatedTypes);
+      }
+
+      for (CallSite callSite : analysisResult.callSites) {
+        Set<MethodSignature> targets;
+        if (useRta) {
+          targets = hierarchy.resolveCallSiteRTA(callSite, instantiatedTypes);
+        } else {
+          targets = hierarchy.resolveCallSite(callSite);
+        }
 
         for (MethodSignature target : targets) {
           edges.add(new CallGraphResult.Edge(method, target));
@@ -169,19 +219,32 @@ public final class AsmCallGraphBuilder {
   }
 
   /**
-   * Extracts call sites from a method's bytecode.
+   * Analyzes a method's bytecode to extract call sites and instantiated types.
    */
-  private List<CallSite> extractCallSites(MethodSignature method) {
+  private MethodAnalysisResult analyzeMethod(MethodSignature method) {
     byte[] bytecode = classBytecode.get(method.getOwner());
     if (bytecode == null) {
       // Class bytecode not available (e.g., JDK class)
-      return List.of();
+      return new MethodAnalysisResult(List.of(), Set.of());
     }
 
     ClassReader reader = new ClassReader(bytecode);
-    MethodCallSiteVisitor visitor = new MethodCallSiteVisitor(method.getName(), method.getDescriptor());
+    MethodAnalysisVisitor visitor = new MethodAnalysisVisitor(method.getName(), method.getDescriptor());
     reader.accept(visitor, PARSE_OPTIONS);
-    return visitor.getCallSites();
+    return visitor.getResult();
+  }
+
+  /**
+   * Result of analyzing a method's bytecode.
+   */
+  private static class MethodAnalysisResult {
+    final List<CallSite> callSites;
+    final Set<String> instantiatedTypes;
+
+    MethodAnalysisResult(List<CallSite> callSites, Set<String> instantiatedTypes) {
+      this.callSites = callSites;
+      this.instantiatedTypes = instantiatedTypes;
+    }
   }
 
   /**
@@ -258,14 +321,15 @@ public final class AsmCallGraphBuilder {
   }
 
   /**
-   * ClassVisitor that extracts call sites from a specific method.
+   * ClassVisitor that extracts call sites and instantiated types from a specific method.
    */
-  private static class MethodCallSiteVisitor extends ClassVisitor {
+  private static class MethodAnalysisVisitor extends ClassVisitor {
     private final String targetMethodName;
     private final String targetDescriptor;
     private List<CallSite> callSites = List.of();
+    private Set<String> instantiatedTypes = Set.of();
 
-    MethodCallSiteVisitor(String methodName, String descriptor) {
+    MethodAnalysisVisitor(String methodName, String descriptor) {
       super(Opcodes.ASM9);
       this.targetMethodName = methodName;
       this.targetDescriptor = descriptor;
@@ -277,13 +341,14 @@ public final class AsmCallGraphBuilder {
       if (name.equals(targetMethodName) && descriptor.equals(targetDescriptor)) {
         CallSiteExtractor extractor = new CallSiteExtractor();
         callSites = extractor.getCallSites();
+        instantiatedTypes = extractor.getInstantiatedTypes();
         return extractor;
       }
       return null;
     }
 
-    List<CallSite> getCallSites() {
-      return callSites;
+    MethodAnalysisResult getResult() {
+      return new MethodAnalysisResult(callSites, instantiatedTypes);
     }
   }
 }

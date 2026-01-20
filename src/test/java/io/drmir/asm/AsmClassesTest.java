@@ -338,4 +338,142 @@ class AsmClassesTest {
     assertThat(ClassLoaderType.valueOf("EXTENSION")).isEqualTo(ClassLoaderType.EXTENSION);
     assertThat(ClassLoaderType.valueOf("APPLICATION")).isEqualTo(ClassLoaderType.APPLICATION);
   }
+
+  /**
+   * Tests MethodSignature access flag methods.
+   */
+  @Test
+  void testMethodSignature_AccessFlags() {
+    MethodSignature publicMethod = new MethodSignature(
+        "com/example/MyClass", "publicMethod", "()V", Opcodes.ACC_PUBLIC);
+    MethodSignature privateMethod = new MethodSignature(
+        "com/example/MyClass", "privateMethod", "()V", Opcodes.ACC_PRIVATE);
+    MethodSignature abstractMethod = new MethodSignature(
+        "com/example/MyClass", "abstractMethod", "()V", Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT);
+    MethodSignature staticMethod = new MethodSignature(
+        "com/example/MyClass", "staticMethod", "()V", Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC);
+    MethodSignature noFlagsMethod = new MethodSignature(
+        "com/example/MyClass", "packageMethod", "()V");
+
+    assertThat(publicMethod.isPublic()).isTrue();
+    assertThat(publicMethod.isAbstract()).isFalse();
+    assertThat(publicMethod.isStatic()).isFalse();
+
+    assertThat(privateMethod.isPublic()).isFalse();
+    assertThat(privateMethod.isAbstract()).isFalse();
+
+    assertThat(abstractMethod.isPublic()).isTrue();
+    assertThat(abstractMethod.isAbstract()).isTrue();
+
+    assertThat(staticMethod.isPublic()).isTrue();
+    assertThat(staticMethod.isStatic()).isTrue();
+
+    // Method with no flags (default access)
+    assertThat(noFlagsMethod.isPublic()).isFalse();
+    assertThat(noFlagsMethod.isAbstract()).isFalse();
+    assertThat(noFlagsMethod.getAccess()).isEqualTo(0);
+  }
+
+  /**
+   * Tests ClassHierarchy RTA virtual call resolution.
+   */
+  @Test
+  void testClassHierarchy_ResolveVirtualCallRTA() {
+    Set<MethodSignature> parentMethods = new HashSet<>();
+    parentMethods.add(new MethodSignature("com/example/Parent", "doSomething", "()V"));
+
+    ClassInfo parentClass = new ClassInfo("com/example/Parent", "java/lang/Object",
+        Collections.emptySet(), parentMethods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
+
+    Set<MethodSignature> child1Methods = new HashSet<>();
+    child1Methods.add(new MethodSignature("com/example/Child1", "doSomething", "()V"));
+
+    ClassInfo child1Class = new ClassInfo("com/example/Child1", "com/example/Parent",
+        Collections.emptySet(), child1Methods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
+
+    Set<MethodSignature> child2Methods = new HashSet<>();
+    // Child2 inherits doSomething from Parent
+
+    ClassInfo child2Class = new ClassInfo("com/example/Child2", "com/example/Parent",
+        Collections.emptySet(), child2Methods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
+
+    Map<String, ClassInfo> classes = Map.of(
+        "com/example/Parent", parentClass,
+        "com/example/Child1", child1Class,
+        "com/example/Child2", child2Class
+    );
+
+    ClassHierarchy hierarchy = new ClassHierarchy(classes);
+
+    // Only Child1 is instantiated
+    Set<String> instantiatedTypes = Set.of("com/example/Child1");
+
+    // RTA should only find Child1.doSomething
+    Set<MethodSignature> rtaTargets = hierarchy.resolveVirtualCallRTA(
+        "com/example/Parent", "doSomething", "()V", instantiatedTypes);
+
+    assertThat(rtaTargets).hasSize(1);
+    assertThat(rtaTargets).anyMatch(m -> m.getOwner().equals("com/example/Child1"));
+
+    // Compare with CHA which finds more targets
+    Set<MethodSignature> chaTargets = hierarchy.resolveVirtualCall(
+        "com/example/Parent", "doSomething", "()V");
+
+    assertThat(chaTargets.size()).isGreaterThan(rtaTargets.size());
+  }
+
+  /**
+   * Tests CallSiteExtractor tracking of NEW instructions.
+   */
+  @Test
+  void testCallSiteExtractor_TracksInstantiatedTypes() {
+    CallSiteExtractor extractor = new CallSiteExtractor();
+
+    // Simulate visiting NEW instructions
+    extractor.visitTypeInsn(Opcodes.NEW, "com/example/MyClass");
+    extractor.visitTypeInsn(Opcodes.NEW, "com/example/AnotherClass");
+    extractor.visitTypeInsn(Opcodes.ANEWARRAY, "java/lang/String"); // Should not be tracked
+
+    Set<String> instantiatedTypes = extractor.getInstantiatedTypes();
+
+    assertThat(instantiatedTypes).hasSize(2);
+    assertThat(instantiatedTypes).contains("com/example/MyClass", "com/example/AnotherClass");
+    assertThat(instantiatedTypes).doesNotContain("java/lang/String");
+  }
+
+  /**
+   * Tests ClassHierarchy resolveCallSiteRTA method.
+   */
+  @Test
+  void testClassHierarchy_ResolveCallSiteRTA() {
+    Set<MethodSignature> methods = new HashSet<>();
+    methods.add(new MethodSignature("com/example/MyClass", "staticMethod", "()V",
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC));
+    methods.add(new MethodSignature("com/example/MyClass", "instanceMethod", "()V",
+        Opcodes.ACC_PUBLIC));
+
+    ClassInfo myClass = new ClassInfo("com/example/MyClass", "java/lang/Object",
+        Collections.emptySet(), methods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
+
+    Map<String, ClassInfo> classes = Map.of("com/example/MyClass", myClass);
+    ClassHierarchy hierarchy = new ClassHierarchy(classes);
+
+    Set<String> instantiatedTypes = Set.of("com/example/MyClass");
+
+    // Static call should resolve regardless of instantiation
+    CallSite staticCall = new CallSite(Opcodes.INVOKESTATIC, "com/example/MyClass",
+        "staticMethod", "()V", false);
+    Set<MethodSignature> staticTargets = hierarchy.resolveCallSiteRTA(staticCall, Set.of());
+    assertThat(staticTargets).hasSize(1);
+
+    // Virtual call should respect instantiated types
+    CallSite virtualCall = new CallSite(Opcodes.INVOKEVIRTUAL, "com/example/MyClass",
+        "instanceMethod", "()V", false);
+    Set<MethodSignature> virtualTargets = hierarchy.resolveCallSiteRTA(virtualCall, instantiatedTypes);
+    assertThat(virtualTargets).hasSize(1);
+
+    // Virtual call with empty instantiated types should return empty
+    Set<MethodSignature> emptyTargets = hierarchy.resolveCallSiteRTA(virtualCall, Set.of());
+    assertThat(emptyTargets).isEmpty();
+  }
 }
