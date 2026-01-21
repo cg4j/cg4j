@@ -1,17 +1,12 @@
-# Welcome to MkDocs
+---
+hide:
+  - toc
+---
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+# CG4j
 
-## Commands
+Call Graph Generation for Java
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+---
 
-## Project layout
-
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+CG4j is a command-line tool to build call graphs using Class Hierarchy Analysis (CHA) from Java programs and their dependencies.

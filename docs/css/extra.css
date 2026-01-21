@@ -1,0 +1,22 @@
+/* Homepage */
+
+div.col-md-9 h1:first-of-type {
+    text-align: center;
+    font-size: 60px;
+    font-weight: 300;
+}
+
+div.col-md-9>p:first-of-type {
+    text-align: center;
+}
+
+body.homepage>div.container>div.row>div.col-md-3 {
+    display: none;
+}
+
+/* Add this - makes content column full width */
+body.homepage>div.container>div.row>div.col-md-9 {
+    margin-left: 0;
+    flex: 0 0 100%;
+    max-width: 100%;
+}
