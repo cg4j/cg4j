@@ -10,6 +10,7 @@ A **call graph** is a directed graph that represents calling relationships betwe
 - **Edges**: Method calls (A → B means "method A calls method B")
 
 **Example:**
+
 ```
 main() → processData()
 processData() → readFile()
@@ -31,6 +32,7 @@ processData() → writeFile()
 ### The Problem
 
 In object-oriented programs, method calls can be dynamic:
+
 ```java
 Animal a = getAnimal(); // Could be Dog, Cat, Bird...
 a.speak();              // Which speak() method runs?
@@ -97,6 +99,7 @@ class Dog extends Animal {
 ```
 
 **Call graph edges:**
+
 ```
 main() → Dog.speak()
 main() → Cat.speak()    // CHA conservatively includes this
