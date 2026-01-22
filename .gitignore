@@ -22,3 +22,7 @@ target/site/jacoco/
 
 # Python virutal env.
 .venv
+
+# Site (MkDocs)
+site
+
