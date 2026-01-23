@@ -20,5 +20,9 @@ target/site/jacoco/
 # Environment variables
 .env
 
+# Python virutal env.
+.venv
+
 # Site (MkDocs)
 site
+
