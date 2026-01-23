@@ -24,11 +24,15 @@ processData() → writeFile()
 - **Dead code detection**: Find unreachable methods
 - **Testing**: Identify test coverage gaps
 
-## Class Hierarchy Analysis (CHA)
+## Call Graph Construction Algorithms
 
-**CHA** is an algorithm that determines which method might be called at a call site.
+cg4j supports two algorithms for resolving virtual method calls: **CHA** and **RTA**.
 
-### The Problem
+### Class Hierarchy Analysis (CHA)
+
+**CHA** is a fast algorithm that determines which methods might be called at a call site.
+
+#### The Problem
 
 In object-oriented programs, method calls can be dynamic:
 ```java
@@ -36,84 +40,160 @@ Animal a = getAnimal(); // Could be Dog, Cat, Bird...
 a.speak();              // Which speak() method runs?
 ```
 
-### How CHA Works
+#### How CHA Works
 
 CHA uses the class hierarchy (inheritance tree) to find all possible targets:
 
 1. Look at the declared type (`Animal`)
-2. Find all subclasses (`Dog`, `Cat`, `Bird`)
+2. Find all subclasses in the hierarchy (`Dog`, `Cat`, `Bird`)
 3. Include all implementations of the method (`speak()`)
 
-**Result**: Conservative approximation - includes all possible targets, may include some impossible ones.
+**Result**: Conservative approximation - includes **all** subtypes in the hierarchy, even if they're never instantiated.
 
-### CHA Trade-offs
+#### CHA Trade-offs
 
 ✅ **Pros:**
-- Fast to compute
+- Very fast to compute
 - Simple to understand
 - Sound (won't miss real calls)
+- No need to analyze method bodies
 
 ❌ **Cons:**
 - Over-approximates (includes impossible calls)
-- Less precise than flow-sensitive analysis
+- Creates edges to methods of classes never instantiated
+- Less precise than type-sensitive analyses
 
-## 0-CFA (Zero Context-Flow-Insensitive Analysis)
+### Rapid Type Analysis (RTA)
 
-**0-CFA** is a call graph construction algorithm that cg4j uses.
+**RTA** is a more precise algorithm that only considers **instantiated types**.
 
-### What Does "0-CFA" Mean?
+#### How RTA Works
 
-- **0**: Zero calling context (doesn't track call chains)
-- **C**: Context-sensitive
-- **F**: Flow-insensitive (ignores execution order)
-- **A**: Analysis
+RTA tracks which classes are actually instantiated (created with `new`) during analysis:
 
-### How 0-CFA Works
+1. Start with entry points
+2. **Track instantiations**: Record every `new ClassName()` encountered
+3. **Resolve virtual calls**: Only consider subtypes that have been instantiated
+4. Repeat until no new types are discovered
 
-1. **Start with entry points**
-   - In cg4j: all public methods
+**Result**: More precise than CHA - only includes methods of classes that are actually created.
 
-2. **For each method reachable:**
-   - Find all method calls in its body
-   - Use CHA to determine possible targets
-   - Add edges to the call graph
-   - Add newly discovered methods to the worklist
-
-3. **Repeat** until no new methods are discovered
-
-### Example
+#### RTA Example
 
 ```java
-// Entry point
 public void main() {
     Animal a = new Dog();
-    a.speak();  // CHA finds: Dog.speak(), Cat.speak(), Bird.speak()
+    a.speak();  // Which speak() methods are possible?
 }
 
 class Dog extends Animal {
     public void speak() { bark(); }
-    private void bark() { }
+}
+
+class Cat extends Animal {
+    public void speak() { meow(); }
+}
+
+class Bird extends Animal {
+    public void speak() { chirp(); }
 }
 ```
 
-**Call graph edges:**
-```
-main() → Dog.speak()
-main() → Cat.speak()    // CHA conservatively includes this
-main() → Bird.speak()   // And this
-Dog.speak() → Dog.bark()
+**CHA result**: Includes `Dog.speak()`, `Cat.speak()`, `Bird.speak()` (all subtypes)
+
+**RTA result**: Only includes `Dog.speak()` (only instantiated type)
+
+#### RTA Trade-offs
+
+✅ **Pros:**
+- More precise than CHA
+- Eliminates impossible calls to never-instantiated classes
+- Still fast and scalable
+- Sound (won't miss real calls)
+
+❌ **Cons:**
+- Slower than CHA (must analyze method bodies)
+- Requires tracking instantiation sites
+- Still over-approximates in some cases
+
+### CHA vs RTA Comparison
+
+| Aspect | CHA | RTA |
+|--------|-----|-----|
+| **Speed** | Fastest | Fast |
+| **Precision** | Lower (all subtypes) | Higher (only instantiated) |
+| **Analysis cost** | Class hierarchy only | Bytecode scanning required |
+| **Call graph size** | Larger | Smaller |
+| **Use case** | Quick overview | More accurate analysis |
+
+### When to Use Each Algorithm
+
+**Use CHA when:**
+- You need fast results
+- You want maximum soundness (catch everything)
+- Precision is less important
+
+**Use RTA when:**
+- You need more accurate call graphs
+- You want to reduce false positives
+- Analysis time is acceptable
+
+## How cg4j Uses CHA and RTA
+
+cg4j provides two engines with different algorithm support:
+
+### WALA Engine (Default)
+
+- Uses **0-CFA** (Zero Context-Flow-Insensitive Analysis) with CHA
+- More mature and feature-rich
+- Handles complex Java features
+
+### ASM Engine
+
+- Supports both **CHA** and **RTA** algorithms
+- Faster and more lightweight
+- Good for straightforward call graph construction
+
+**Usage:**
+```bash
+# ASM with CHA (default)
+java -jar cg4j.jar --engine=asm --algorithm=cha app.jar
+
+# ASM with RTA (more precise)
+java -jar cg4j.jar --engine=asm --algorithm=rta app.jar
+
+# WALA (uses 0-CFA with CHA)
+java -jar cg4j.jar --engine=wala app.jar
 ```
 
-Even though we know `a` is a `Dog`, 0-CFA with CHA includes all possible subtypes.
+### Worklist Algorithm
+
+Both CHA and RTA use a worklist-based approach:
+
+1. **Start with entry points** (all public methods in cg4j)
+
+2. **For each reachable method:**
+   - Scan method bytecode for call sites
+   - Track instantiations (`new` expressions) - **RTA only**
+   - Resolve virtual calls using CHA or RTA
+   - Add discovered methods to worklist
+
+3. **Repeat** until no new methods are discovered
+
+**Key difference:**
+- **CHA**: Resolves calls to all subtypes in hierarchy
+- **RTA**: Resolves calls only to instantiated subtypes
 
 ## How cg4j Builds Call Graphs
 
 1. **Load JAR file** and dependencies
 2. **Find entry points** (all public methods)
 3. **Build class hierarchy** from loaded classes
-4. **Run 0-CFA algorithm**:
+4. **Run worklist algorithm**:
    - Process each reachable method
-   - Use CHA to resolve method calls
+   - Extract call sites from bytecode
+   - Track instantiations (RTA only)
+   - Resolve virtual calls using CHA or RTA
    - Expand the call graph iteratively
 5. **Output CSV** with source → target edges
 
@@ -152,10 +232,13 @@ Even though we know `a` is a `Dog`, 0-CFA with CHA includes all possible subtype
 
 ## Quick Reference
 
-| What You Want | What You Get |
-|---------------|--------------|
-| Fast analysis | ✅ CHA is very fast |
-| Perfect precision | ❌ Over-approximates possible calls |
-| Handle reflection | ❌ Not supported |
-| Sound results | ✅ Won't miss real calls (for supported features) |
-| Scale to large programs | ✅ Efficient for large codebases |
+| What You Want | WALA (0-CFA/CHA) | ASM with CHA | ASM with RTA |
+|---------------|------------------|--------------|--------------|
+| Fast analysis | ✅ Fast | ✅ Very fast | ✅ Fast |
+| More precision | ⚠️ Moderate | ⚠️ Lower | ✅ Higher |
+| Handle reflection | ❌ Limited | ❌ No | ❌ No |
+| Sound results | ✅ Yes | ✅ Yes | ✅ Yes |
+| Large programs | ✅ Yes | ✅ Yes | ✅ Yes |
+| Smaller call graphs | ⚠️ Moderate | ❌ Larger | ✅ Smaller |
+
+**Recommendation**: Start with ASM+RTA for better precision. Use WALA for complex Java features or ASM+CHA for maximum speed.
