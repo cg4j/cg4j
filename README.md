@@ -50,16 +50,10 @@ make version
 
 ### Quick Install
 
-Install cg4j as a system-wide command using Make:
+Install cg4j as a system-wide command:
 
 ```bash
 make install
-```
-
-Or use the install script directly:
-
-```bash
-./install.sh
 ```
 
 This will:
@@ -77,12 +71,6 @@ cg4j --help
 
 ```bash
 make uninstall
-```
-
-Or:
-
-```bash
-./uninstall.sh
 ```
 
 **Note:** If `cg4j` command is not found after installation, ensure `~/.local/bin` is in your PATH:
