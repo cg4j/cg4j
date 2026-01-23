@@ -9,6 +9,7 @@ This document provides coding guidelines for AI agents working on the cg4j (Call
 - **Main Package**: `io.drmir`
 - **Entry Point**: `io.drmir.Main`
 - **Artifact**: `cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar`
+- **Note**: Ignore `.venv/` folder for context/analysis (Python virtual environment), but Python/pip tools may be used to run Python scripts
 
 ## Build Commands
 

@@ -10,6 +10,7 @@ cg4j (Call Graph for Java) builds call graphs from Java JAR files using IBM WALA
 - **Build Tool**: Maven 3.6+
 - **Package**: `io.drmir`
 - **Entry Point**: `io.drmir.Main`
+- **Note**: Ignore `.venv/` folder for context/analysis (Python virtual environment), but Python/pip tools may be used to run Python scripts
 
 ## Build and Test Commands
 
