@@ -226,9 +226,23 @@ Both CHA and RTA use a worklist-based approach:
 
 ## Further Reading
 
-- [WALA Documentation](http://wala.sourceforge.net/)
-- [Call Graph Construction Algorithms](https://yanniss.github.io/points-to-tutorial15.pdf) (Academic paper)
-- [Static Analysis Overview](https://cs.au.dk/~amoeller/spa/)
+### Foundational Papers
+
+**CHA (Class Hierarchy Analysis):**
+- Dean, J., Grove, D., and Chambers, C. (1995). *Optimization of Object-Oriented Programs Using Static Class Hierarchy Analysis*. ECOOP'95.
+  - [PDF](https://web.cs.ucla.edu/~palsberg/tba/papers/dean-grove-chambers-ecoop95.pdf)
+  - The original paper introducing CHA for call graph construction
+
+**RTA (Rapid Type Analysis):**
+- Bacon, D. F. and Sweeney, P. F. (1996). *Fast Static Analysis of C++ Virtual Function Calls*. OOPSLA'96.
+  - [PDF](https://people.cs.vt.edu/ryder/516/sp03/papers/baconOOPSLA96.pdf)
+  - Introduces RTA as a more precise alternative to CHA by tracking instantiated types
+
+### Additional Resources
+
+- [WALA Documentation](http://wala.sourceforge.net/) - Framework used by cg4j
+- [Call Graph Construction Algorithms](https://yanniss.github.io/points-to-tutorial15.pdf) - Comprehensive tutorial on points-to analysis
+- [Static Analysis Overview](https://cs.au.dk/~amoeller/spa/) - Course materials on static program analysis
 
 ## Quick Reference
 
