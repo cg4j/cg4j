@@ -10,6 +10,7 @@ A **call graph** is a directed graph that represents calling relationships betwe
 - **Edges**: Method calls (A → B means "method A calls method B")
 
 **Example:**
+
 ```
 main() → processData()
 processData() → readFile()
@@ -35,6 +36,7 @@ cg4j supports two algorithms for resolving virtual method calls: **CHA** and **R
 #### The Problem
 
 In object-oriented programs, method calls can be dynamic:
+
 ```java
 Animal a = getAnimal(); // Could be Dog, Cat, Bird...
 a.speak();              // Which speak() method runs?

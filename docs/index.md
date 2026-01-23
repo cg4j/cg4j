@@ -1,8 +1,3 @@
----
-hide:
-  - toc
----
-
 # CG4j
 
 Call Graph Generation for Java
