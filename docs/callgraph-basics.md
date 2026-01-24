@@ -159,13 +159,13 @@ cg4j provides two engines with different algorithm support:
 **Usage:**
 ```bash
 # ASM with CHA (default)
-java -jar cg4j.jar --engine=asm --algorithm=cha app.jar
+java -jar cg4j.jar -j app.jar --engine=asm --algorithm=cha
 
 # ASM with RTA (more precise)
-java -jar cg4j.jar --engine=asm --algorithm=rta app.jar
+java -jar cg4j.jar -j app.jar --engine=asm --algorithm=rta
 
 # WALA (uses 0-CFA with CHA)
-java -jar cg4j.jar --engine=wala app.jar
+java -jar cg4j.jar -j app.jar --engine=wala
 ```
 
 ### Worklist Algorithm

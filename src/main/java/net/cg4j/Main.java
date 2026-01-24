@@ -35,8 +35,9 @@ public class Main implements Callable<Integer> {
 
   private static final Logger logger = LogManager.getLogger(Main.class);
 
-  @Parameters(index = "0", 
-              description = "JAR file to analyze")
+  @Option(names = {"-j", "--app-jar"},
+          required = true,
+          description = "JAR file to analyze")
   private File targetJar;
 
   @Option(names = {"-o", "--output"}, 
