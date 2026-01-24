@@ -90,7 +90,7 @@ docker build -t cg4j:latest .
 docker run --rm \
   -v $(pwd):/input:ro \
   -v $(pwd):/output \
-  cg4j:latest -o /output/callgraph.csv /input/myapp.jar
+  cg4j:latest -j /input/myapp.jar -o /output/callgraph.csv
 ```
 
 ### Docker Compose
@@ -101,7 +101,7 @@ cp .env.example .env
 # Edit .env to set INPUT_DIR and OUTPUT_DIR
 
 # Run analysis
-docker-compose run --rm cg4j -o /output/callgraph.csv /input/myapp.jar
+docker-compose run --rm cg4j -j /input/myapp.jar -o /output/callgraph.csv
 
 # Show help
 docker-compose run --rm cg4j --help
@@ -116,22 +116,23 @@ Default configuration (`.env`):
 After installation:
 ```bash
 # Basic usage - outputs to callgraph.csv
-cg4j myapp.jar
+cg4j -j myapp.jar
 
 # With dependencies and custom output
-cg4j myapp.jar -o output.csv -d lib/
+cg4j -j myapp.jar -o output.csv -d lib/
 ```
 
 Or run directly from JAR without installation:
 ```bash
 # Basic usage - outputs to callgraph.csv
-java -jar target/cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar
+java -jar target/cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar -j myapp.jar
 
 # With dependencies and custom output
-java -jar target/cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar -o output.csv -d lib/
+java -jar target/cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar -j myapp.jar -o output.csv -d lib/
 ```
 
 **Options:**
+- `-j, --app-jar=<file>` - JAR file to analyze (required)
 - `-o, --output=<file>` - Output CSV file (default: callgraph.csv)
 - `-d, --deps=<dir>` - Directory containing dependency JAR files
 - `-h, --help` - Show help message

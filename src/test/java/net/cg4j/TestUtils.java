@@ -105,11 +105,23 @@ public class TestUtils {
 
   /**
    * Run Main programmatically without System.exit()
+   * 
+   * First argument is treated as JAR path and automatically prefixed with -j flag.
+   * Example: runMain("app.jar", "-o", "out.csv") -> executes with args: ["-j", "app.jar", "-o", "out.csv"]
    */
   public static int runMain(String... args) {
+    if (args.length == 0) {
+      throw new IllegalArgumentException("runMain requires at least one argument (JAR path)");
+    }
+    
+    // Prepend -j flag before the first argument (JAR path)
+    String[] newArgs = new String[args.length + 1];
+    newArgs[0] = "-j";
+    System.arraycopy(args, 0, newArgs, 1, args.length);
+    
     Main main = new Main();
     CommandLine cmd = new CommandLine(main);
-    return cmd.execute(args);
+    return cmd.execute(newArgs);
   }
 
   /**
