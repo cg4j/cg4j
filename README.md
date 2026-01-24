@@ -29,11 +29,53 @@ A command-line tool to build call graphs from Java JAR files using IBM WALA (T.J
 
 ## Build
 
+Using Make:
+```bash
+make build
+```
+
+Or using Maven directly:
 ```bash
 mvn clean package
 ```
 
 This creates `target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar`
+
+## Installation
+
+### Quick Install
+
+Install cg4j as a system-wide command:
+
+```bash
+make install
+```
+
+This will:
+- Check for Java 11+ and Maven 3.6+
+- Build the project with full Maven output
+- Install `cg4j` command to `~/.local/bin/`
+- Make it available from anywhere in your terminal
+
+**Verify installation:**
+```bash
+cg4j --help
+```
+
+### Uninstall
+
+```bash
+make uninstall
+```
+
+**Note:** If `cg4j` command is not found after installation, ensure `~/.local/bin` is in your PATH:
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Then restart your terminal or run `source ~/.bashrc`.
 
 ## Docker
 
@@ -70,6 +112,16 @@ Default configuration (`.env`):
 
 ## Usage
 
+After installation:
+```bash
+# Basic usage - outputs to callgraph.csv
+cg4j myapp.jar
+
+# With dependencies and custom output
+cg4j myapp.jar -o output.csv -d lib/
+```
+
+Or run directly from JAR without installation:
 ```bash
 # Basic usage - outputs to callgraph.csv
 java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar myapp.jar
@@ -100,6 +152,12 @@ org/slf4j/Logger.info:(Ljava/lang/String;)V,org/slf4j/helpers/MessageFormatter.f
 
 ## Testing
 
+Using Make:
+```bash
+make test
+```
+
+Or using Maven directly:
 ```bash
 # Run tests
 mvn test
