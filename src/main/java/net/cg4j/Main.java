@@ -29,7 +29,7 @@ import java.util.stream.Stream;
  */
 @Command(name = "cg4j",
          mixinStandardHelpOptions = true,
-         version = "1.0-SNAPSHOT",
+         versionProvider = VersionProvider.class,
          description = "Builds call graphs from Java JAR files using WALA or ASM")
 public class Main implements Callable<Integer> {
 
