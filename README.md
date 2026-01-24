@@ -41,11 +41,6 @@ mvn clean package
 
 This creates `target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar`
 
-**Check project version:**
-```bash
-make version
-```
-
 ## Installation
 
 ### Quick Install
@@ -81,14 +76,6 @@ export PATH="$HOME/.local/bin:$PATH"
 ```
 
 Then restart your terminal or run `source ~/.bashrc`.
-
-### Check Version
-
-```bash
-make version
-```
-
-Shows the current cg4j version from `pom.xml`.
 
 ## Docker
 
