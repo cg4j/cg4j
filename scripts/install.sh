@@ -111,8 +111,8 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
   echo ""
 fi
 
-# Extract version from pom.xml
-PROJECT_VERSION=$(grep -A 2 "<artifactId>cg4j-cli</artifactId>" pom.xml | grep "<version>" | sed 's/.*<version>\(.*\)<\/version>/\1/' | head -1 | xargs)
+# Extract version from the built JAR (includes git commit hash)
+PROJECT_VERSION=$(java -jar "$HOME/.local/share/cg4j/cg4j.jar" --version 2>/dev/null || echo "0.1.0-SNAPSHOT")
 
 success "cg4j $PROJECT_VERSION installed successfully!"
 echo ""
