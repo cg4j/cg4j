@@ -6,9 +6,9 @@ This document provides coding guidelines for AI agents working on the cg4j (Call
 
 - **Language**: Java 11+
 - **Build Tool**: Maven 3.6+
-- **Main Package**: `io.drmir`
-- **Entry Point**: `io.drmir.Main`
-- **Artifact**: `cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar`
+- **Main Package**: `net.cg4j`
+- **Entry Point**: `net.cg4j.Main`
+- **Artifact**: `cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar`
 - **Note**: Ignore `.venv/` folder for context/analysis (Python virtual environment), but Python/pip tools may be used to run Python scripts
 
 ## Build Commands

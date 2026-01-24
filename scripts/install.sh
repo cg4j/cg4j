@@ -82,7 +82,7 @@ mkdir -p "$HOME/.local/bin"
 mkdir -p "$HOME/.local/share/cg4j"
 
 # Copy JAR file and rename
-JAR_FILE="target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar"
+JAR_FILE="target/cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar"
 if [ ! -f "$JAR_FILE" ]; then
   error "JAR file not found: $JAR_FILE"
 fi
@@ -112,7 +112,7 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
 fi
 
 # Extract version from pom.xml
-PROJECT_VERSION=$(grep -A 2 "<artifactId>cg4j</artifactId>" pom.xml | grep "<version>" | sed 's/.*<version>\(.*\)<\/version>/\1/' | head -1 | xargs)
+PROJECT_VERSION=$(grep -A 2 "<artifactId>cg4j-cli</artifactId>" pom.xml | grep "<version>" | sed 's/.*<version>\(.*\)<\/version>/\1/' | head -1 | xargs)
 
 success "cg4j $PROJECT_VERSION installed successfully!"
 echo ""
