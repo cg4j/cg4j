@@ -34,4 +34,4 @@ clean:
 
 version:
 	@echo -n "cg4j version: "
-	@grep -A 2 "<artifactId>cg4j</artifactId>" pom.xml | grep "<version>" | sed 's/.*<version>\(.*\)<\/version>/\1/' | head -1
+	@grep -A 2 "<artifactId>cg4j-cli</artifactId>" pom.xml | grep "<version>" | sed 's/.*<version>\(.*\)<\/version>/\1/' | head -1

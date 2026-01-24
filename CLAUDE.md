@@ -28,7 +28,7 @@ mvn test -Dtest=IntegrationTest
 mvn clean test jacoco:report
 
 # Run the tool
-java -jar target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar <jarfile> -o output.csv -d deps/
+java -jar target/cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar <jarfile> -o output.csv -d deps/
 ```
 
 ## Architecture

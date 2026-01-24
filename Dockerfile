@@ -17,7 +17,7 @@ FROM eclipse-temurin:21-jdk-jammy
 WORKDIR /app
 
 # Copy only the fat JAR from build stage
-COPY --from=builder /build/target/cg4j-1.0-SNAPSHOT-jar-with-dependencies.jar /app/cg4j.jar
+COPY --from=builder /build/target/cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar /app/cg4j.jar
 
 # Create volume mount points
 RUN mkdir -p /input /output /deps
@@ -35,4 +35,4 @@ VOLUME ["/input", "/output", "/deps"]
 # Labels
 LABEL maintainer="cg4j"
 LABEL description="Call Graph Generator for Java using IBM WALA"
-LABEL version="1.0-SNAPSHOT"
+LABEL version="0.1.0-SNAPSHOT"
