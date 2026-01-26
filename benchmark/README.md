@@ -23,7 +23,16 @@ Compare two call graph CSV files:
 python benchmark/compare_cg.py <cg1.csv> <cg2.csv>
 ```
 
-**Example:**
+### CLI Arguments
+
+- `--count`: Display node and edge count comparison table (default behavior)
+- `--diff`: Display edge set intersection analysis (Venn diagram style)
+
+Both flags can be combined to show both outputs.
+
+### Examples
+
+**Default comparison (node/edge counts):**
 
 ```bash
 python benchmark/compare_cg.py cg_okhttp_w_deps_wala.csv cg_okhttp_w_deps_asm.csv
@@ -45,6 +54,36 @@ Call Graph Comparison
 +----------+---------------------------+--------------------------+------------------+
 ```
 
+**Edge set intersection analysis:**
+
+```bash
+python benchmark/compare_cg.py --diff cg_okhttp_w_deps_wala.csv cg_okhttp_w_deps_asm.csv
+```
+
+**Output:**
+
+```
+Edges Set Comparison
+==============================================================
++-----------------------------------+---------+--------------+
+| Category                          | Count   | Percentage   |
++===================================+=========+==============+
+| Only in cg_okhttp_w_deps_wala.csv | 5,597   | 18.0%        |
++-----------------------------------+---------+--------------+
+| Intersection (Both)               | 7,709   | 24.8%        |
++-----------------------------------+---------+--------------+
+| Only in cg_okhttp_w_deps_asm.csv  | 17,723  | 57.1%        |
++-----------------------------------+---------+--------------+
+| Total Unique                      | 31,029  | 100.0%       |
++-----------------------------------+---------+--------------+
+```
+
+**Both outputs:**
+
+```bash
+python benchmark/compare_cg.py --count --diff cg_okhttp_w_deps_wala.csv cg_okhttp_w_deps_asm.csv
+```
+
 ## Understanding the Metrics
 
 ### Nodes
@@ -63,6 +102,16 @@ Call Graph Comparison
   - Positive (+): CG2 has more nodes/edges than CG1
   - Negative (-): CG2 has fewer nodes/edges than CG1
   - Percentage shows relative change: `(CG2 - CG1) / CG1 * 100`
+
+### Edge Set Intersection (--diff)
+- **Purpose**: Analyze edge overlap between two call graphs (Venn diagram style)
+- **Categories**:
+  - **Only in CG1**: Edges present in first call graph but not in second
+  - **Intersection (Both)**: Edges present in both call graphs
+  - **Only in CG2**: Edges present in second call graph but not in first
+  - **Total Unique**: Sum of all unique edges across both call graphs
+- **Percentages**: Based on total unique edges across both call graphs
+- **Use case**: Identify shared vs. unique call relationships between different analysis methods or configurations
 
 ## CSV Format
 
