@@ -186,6 +186,29 @@ When adding dependencies:
 - ❌ Don't add null-assertion libraries
 - ❌ Don't use `TODO` comments without tracking
 
+## Benchmarking
+
+**Location**: `benchmark/compare_cg.py` - Python script for comparing call graph CSV files
+
+**Usage**:
+```bash
+# Default: Show comparison table (nodes/edges counts)
+python benchmark/compare_cg.py cg1.csv cg2.csv
+
+# --count: Explicitly show comparison table (same as default)
+python benchmark/compare_cg.py --count cg1.csv cg2.csv
+
+# --diff: Show edge set intersection (Venn diagram)
+python benchmark/compare_cg.py --diff cg1.csv cg2.csv
+
+# Both: Show comparison table + edge intersection
+python benchmark/compare_cg.py --count --diff cg1.csv cg2.csv
+```
+
+**Flags**:
+- `--count`: Displays node/edge count comparison table with differences (percentages and absolute values)
+- `--diff`: Displays edge set intersection analysis showing: only in CG1, intersection (both), only in CG2, and total unique edges with percentages
+
 ## Git
 
 - `.gitignore` excludes: `target/`, `*.csv`
