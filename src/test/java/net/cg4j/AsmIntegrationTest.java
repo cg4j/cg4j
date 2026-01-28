@@ -19,7 +19,7 @@ class AsmIntegrationTest extends BaseIntegrationTest {
 
   /**
    * Integration test: Analyzes simple library (slf4j) without Java runtime classes using ASM.
-   * CHA produces more edges than 0-CFA, so we expect more than WALA's 611.
+   * RTA is more precise than CHA, producing fewer edges.
    */
   @Test
   void testAsmEngine_NoRT_Slf4j() throws IOException {
@@ -35,9 +35,9 @@ class AsmIntegrationTest extends BaseIntegrationTest {
     assertThat(exitCode).isEqualTo(0);
     assertThat(outputFile).exists();
 
-    // CHA typically produces more edges than 0-CFA
+    // RTA produces edges based on instantiated types
     int edgeCount = TestUtils.countEdges(outputFile);
-    assertThat(edgeCount).isGreaterThan(500);
+    assertThat(edgeCount).isGreaterThan(100);
 
     // No RT classes
     assertThat(TestUtils.hasRTClasses(outputFile)).isFalse();
@@ -65,9 +65,9 @@ class AsmIntegrationTest extends BaseIntegrationTest {
     assertThat(exitCode).isEqualTo(0);
     assertThat(outputFile).exists();
 
-    // With RT should have more edges
+    // With RT should have more edges than without RT
     int edgeCount = TestUtils.countEdges(outputFile);
-    assertThat(edgeCount).isGreaterThan(2000);
+    assertThat(edgeCount).isGreaterThan(1000);
 
     // Has RT classes
     assertThat(TestUtils.hasRTClasses(outputFile)).isTrue();
@@ -92,9 +92,9 @@ class AsmIntegrationTest extends BaseIntegrationTest {
     assertThat(exitCode).isEqualTo(0);
     assertThat(outputFile).exists();
 
-    // Should have significant edges
+    // Should have significant edges (RTA is more precise than CHA)
     int edgeCount = TestUtils.countEdges(outputFile);
-    assertThat(edgeCount).isGreaterThan(5000);
+    assertThat(edgeCount).isGreaterThan(1000);
 
     // No RT classes
     assertThat(TestUtils.hasRTClasses(outputFile)).isFalse();

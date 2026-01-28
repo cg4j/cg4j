@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Maintains class hierarchy information and resolves virtual calls using CHA.
+ * Maintains class hierarchy information and resolves virtual calls using RTA.
  */
 public final class ClassHierarchy {
 
@@ -153,41 +153,6 @@ public final class ClassHierarchy {
   }
 
   /**
-   * Resolves a virtual call using CHA.
-   * Returns all possible target methods based on class hierarchy analysis.
-   *
-   * @param receiverType the declared receiver type
-   * @param methodName the method name
-   * @param descriptor the method descriptor
-   * @return set of possible target methods
-   */
-  public Set<MethodSignature> resolveVirtualCall(String receiverType, String methodName,
-                                                  String descriptor) {
-    Set<MethodSignature> targets = new HashSet<>();
-
-    Set<String> subtypes = getAllSubtypes(receiverType);
-    for (String subtype : subtypes) {
-      ClassInfo info = classes.get(subtype);
-      if (info == null) {
-        continue;
-      }
-
-      // Skip abstract classes and interfaces for virtual call targets
-      if (info.isAbstract() || info.isInterface()) {
-        continue;
-      }
-
-      // Look up the method (may be inherited)
-      MethodSignature method = lookupMethod(subtype, methodName, descriptor);
-      if (method != null) {
-        targets.add(method);
-      }
-    }
-
-    return targets;
-  }
-
-  /**
    * Resolves a virtual call using RTA (Rapid Type Analysis).
    * Only considers types that have been instantiated.
    *
@@ -263,24 +228,6 @@ public final class ClassHierarchy {
     if (method != null) {
       return Collections.singleton(method);
     }
-    return Collections.emptySet();
-  }
-
-  /**
-   * Resolves a call site to its possible targets using CHA.
-   *
-   * @param callSite the call site to resolve
-   * @return set of possible target methods
-   */
-  public Set<MethodSignature> resolveCallSite(CallSite callSite) {
-    if (callSite.isStatic() || callSite.isSpecial()) {
-      return resolveStaticOrSpecialCall(callSite.getOwner(), callSite.getName(),
-          callSite.getDescriptor());
-    } else if (callSite.isVirtual()) {
-      return resolveVirtualCall(callSite.getOwner(), callSite.getName(),
-          callSite.getDescriptor());
-    }
-    // Unknown opcode
     return Collections.emptySet();
   }
 
