@@ -28,7 +28,6 @@ class RtaIntegrationTest extends BaseIntegrationTest {
         slf4jJar.getPath(),
         "-o", outputFile.getPath(),
         "--engine=asm",
-        "--algorithm=rta",
         "--include-rt=false"
     );
 
@@ -59,7 +58,6 @@ class RtaIntegrationTest extends BaseIntegrationTest {
         slf4jJar.getPath(),
         "-o", outputFile.getPath(),
         "--engine=asm",
-        "--algorithm=rta",
         "--include-rt=true"
     );
 
@@ -87,7 +85,6 @@ class RtaIntegrationTest extends BaseIntegrationTest {
         "-d", okhttpDeps.getPath(),
         "-o", outputFile.getPath(),
         "--engine=asm",
-        "--algorithm=rta",
         "--include-rt=false"
     );
 
@@ -107,45 +104,6 @@ class RtaIntegrationTest extends BaseIntegrationTest {
   }
 
   /**
-   * Integration test: Verifies RTA produces fewer edges than CHA.
-   * RTA should be more precise due to type instantiation filtering.
-   */
-  @Test
-  void testRtaVsCha_RtaHasFewerEdges() throws IOException {
-    File chaOutput = TestUtils.createTempOutputFile();
-    File rtaOutput = TestUtils.createTempOutputFile();
-
-    try {
-      // Run CHA
-      TestUtils.runMain(
-          slf4jJar.getPath(),
-          "-o", chaOutput.getPath(),
-          "--engine=asm",
-          "--algorithm=cha",
-          "--include-rt=false"
-      );
-
-      // Run RTA
-      TestUtils.runMain(
-          slf4jJar.getPath(),
-          "-o", rtaOutput.getPath(),
-          "--engine=asm",
-          "--algorithm=rta",
-          "--include-rt=false"
-      );
-
-      int chaEdges = TestUtils.countEdges(chaOutput);
-      int rtaEdges = TestUtils.countEdges(rtaOutput);
-
-      // RTA should produce fewer or equal edges than CHA
-      assertThat(rtaEdges).isLessThanOrEqualTo(chaEdges);
-    } finally {
-      TestUtils.cleanupFile(chaOutput);
-      TestUtils.cleanupFile(rtaOutput);
-    }
-  }
-
-  /**
    * Integration test: Verifies RTA CSV output format.
    * Expects CSV file with correct header: "source_method,target_method".
    */
@@ -157,7 +115,6 @@ class RtaIntegrationTest extends BaseIntegrationTest {
         slf4jJar.getPath(),
         "-o", outputFile.getPath(),
         "--engine=asm",
-        "--algorithm=rta",
         "--include-rt=false"
     );
 
@@ -165,56 +122,5 @@ class RtaIntegrationTest extends BaseIntegrationTest {
 
     String firstLine = Files.lines(outputFile.toPath()).findFirst().orElse("");
     assertThat(firstLine).isEqualTo("source_method,target_method");
-  }
-
-  /**
-   * Integration test: Tests invalid algorithm option.
-   * Expects exit code 1 (error) when invalid algorithm is specified.
-   */
-  @Test
-  void testInvalidAlgorithm_ReturnsErrorCode() {
-    int exitCode = TestUtils.runMain(
-        slf4jJar.getPath(),
-        "--engine=asm",
-        "--algorithm=invalid"
-    );
-    assertThat(exitCode).isEqualTo(1);
-  }
-
-  /**
-   * Integration test: Verifies default algorithm is CHA when not specified.
-   * Expects same behavior as explicit --algorithm=cha.
-   */
-  @Test
-  void testDefaultAlgorithm_IsCha() throws IOException {
-    File chaOutput = TestUtils.createTempOutputFile();
-    File defaultOutput = TestUtils.createTempOutputFile();
-
-    try {
-      // Run with explicit cha
-      TestUtils.runMain(
-          slf4jJar.getPath(),
-          "-o", chaOutput.getPath(),
-          "--engine=asm",
-          "--algorithm=cha",
-          "--include-rt=false"
-      );
-
-      // Run with default (no --algorithm)
-      TestUtils.runMain(
-          slf4jJar.getPath(),
-          "-o", defaultOutput.getPath(),
-          "--engine=asm",
-          "--include-rt=false"
-      );
-
-      // Both should have same edge count
-      int chaEdges = TestUtils.countEdges(chaOutput);
-      int defaultEdges = TestUtils.countEdges(defaultOutput);
-      assertThat(defaultEdges).isEqualTo(chaEdges);
-    } finally {
-      TestUtils.cleanupFile(chaOutput);
-      TestUtils.cleanupFile(defaultOutput);
-    }
   }
 }

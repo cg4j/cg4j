@@ -97,47 +97,6 @@ class ClassHierarchyTest {
   }
 
   /**
-   * Unit test: Tests ClassHierarchy CHA virtual call resolution.
-   * Expects all possible implementations across class hierarchy.
-   */
-  @Test
-  void testResolveVirtualCall() {
-    Set<MethodSignature> parentMethods = new HashSet<>();
-    parentMethods.add(new MethodSignature("com/example/Parent", "doSomething", "()V"));
-
-    ClassInfo parentClass = new ClassInfo("com/example/Parent", "java/lang/Object",
-        Collections.emptySet(), parentMethods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
-
-    Set<MethodSignature> child1Methods = new HashSet<>();
-    child1Methods.add(new MethodSignature("com/example/Child1", "doSomething", "()V"));
-
-    ClassInfo child1Class = new ClassInfo("com/example/Child1", "com/example/Parent",
-        Collections.emptySet(), child1Methods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
-
-    Set<MethodSignature> child2Methods = new HashSet<>();
-    // Child2 inherits doSomething from Parent
-
-    ClassInfo child2Class = new ClassInfo("com/example/Child2", "com/example/Parent",
-        Collections.emptySet(), child2Methods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
-
-    Map<String, ClassInfo> classes = Map.of(
-        "com/example/Parent", parentClass,
-        "com/example/Child1", child1Class,
-        "com/example/Child2", child2Class
-    );
-
-    ClassHierarchy hierarchy = new ClassHierarchy(classes);
-
-    // Resolve virtual call on Parent
-    Set<MethodSignature> targets = hierarchy.resolveVirtualCall("com/example/Parent", "doSomething", "()V");
-
-    // Should find: Parent.doSomething, Child1.doSomething, and Parent.doSomething (via Child2)
-    assertThat(targets).hasSize(2);
-    assertThat(targets).anyMatch(m -> m.getOwner().equals("com/example/Parent"));
-    assertThat(targets).anyMatch(m -> m.getOwner().equals("com/example/Child1"));
-  }
-
-  /**
    * Unit test: Tests ClassHierarchy RTA virtual call resolution.
    * Expects only instantiated types to be considered.
    */
@@ -178,12 +137,6 @@ class ClassHierarchyTest {
 
     assertThat(rtaTargets).hasSize(1);
     assertThat(rtaTargets).anyMatch(m -> m.getOwner().equals("com/example/Child1"));
-
-    // Compare with CHA which finds more targets
-    Set<MethodSignature> chaTargets = hierarchy.resolveVirtualCall(
-        "com/example/Parent", "doSomething", "()V");
-
-    assertThat(chaTargets.size()).isGreaterThan(rtaTargets.size());
   }
 
   /**

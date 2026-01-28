@@ -22,28 +22,18 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 /**
- * Builds call graphs using ASM with CHA or RTA-based virtual call resolution.
+ * Builds call graphs using ASM with RTA-based virtual call resolution.
  */
 public final class AsmCallGraphBuilder {
 
   private static final Logger logger = LogManager.getLogger(AsmCallGraphBuilder.class);
   private static final int PARSE_OPTIONS = ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES;
 
-  /**
-   * Call graph algorithm to use.
-   */
-  public enum Algorithm {
-    /** Class Hierarchy Analysis - resolves to all possible subtypes. */
-    CHA,
-    /** Rapid Type Analysis - resolves to only instantiated subtypes. */
-    RTA
-  }
-
   private ClassHierarchy hierarchy;
   private Map<String, byte[]> classBytecode;
 
   /**
-   * Builds a call graph for the given JAR file using CHA algorithm.
+   * Builds a call graph for the given JAR file using RTA algorithm.
    *
    * @param jarFile the target JAR to analyze
    * @param dependencies list of dependency JAR files
@@ -51,21 +41,6 @@ public final class AsmCallGraphBuilder {
    * @return the call graph result
    */
   public CallGraphResult buildCallGraph(String jarFile, List<File> dependencies, boolean includeRt)
-      throws IOException {
-    return buildCallGraph(jarFile, dependencies, includeRt, Algorithm.CHA);
-  }
-
-  /**
-   * Builds a call graph for the given JAR file.
-   *
-   * @param jarFile the target JAR to analyze
-   * @param dependencies list of dependency JAR files
-   * @param includeRt whether to include JDK classes in the output
-   * @param algorithm the call graph algorithm to use (CHA or RTA)
-   * @return the call graph result
-   */
-  public CallGraphResult buildCallGraph(String jarFile, List<File> dependencies, boolean includeRt,
-                                         Algorithm algorithm)
       throws IOException {
     logger.info("Loading classes...");
 
@@ -107,8 +82,8 @@ public final class AsmCallGraphBuilder {
     }
 
     // Step 4: Run worklist algorithm
-    logger.info("Running worklist algorithm with {} algorithm...", algorithm);
-    WorklistResult result = runWorklist(entryPoints, algorithm);
+    logger.info("Running worklist algorithm with RTA...");
+    WorklistResult result = runWorklist(entryPoints);
 
     // Step 5: Filter edges if needed
     Set<CallGraphResult.Edge> edges = result.edges;
@@ -148,23 +123,19 @@ public final class AsmCallGraphBuilder {
    * Runs the worklist algorithm to compute reachable methods and call edges.
    *
    * @param entryPoints the set of entry point methods
-   * @param algorithm the call graph algorithm to use (CHA or RTA)
    * @return the worklist result containing reachable methods and edges
    */
-  private WorklistResult runWorklist(Set<MethodSignature> entryPoints, Algorithm algorithm) {
+  private WorklistResult runWorklist(Set<MethodSignature> entryPoints) {
     Set<MethodSignature> reachable = new HashSet<>();
     Set<CallGraphResult.Edge> edges = new HashSet<>();
     Deque<MethodSignature> worklist = new ArrayDeque<>(entryPoints);
 
-    // For RTA: track instantiated types
+    // Track instantiated types for RTA
     Set<String> instantiatedTypes = new HashSet<>();
-    boolean useRta = (algorithm == Algorithm.RTA);
 
-    if (useRta) {
-      // Entry point classes are considered instantiated
-      for (MethodSignature entry : entryPoints) {
-        instantiatedTypes.add(entry.getOwner());
-      }
+    // Entry point classes are considered instantiated
+    for (MethodSignature entry : entryPoints) {
+      instantiatedTypes.add(entry.getOwner());
     }
 
     // Add synthetic boot entry point
@@ -189,20 +160,12 @@ public final class AsmCallGraphBuilder {
         logger.debug("Processed {} methods, worklist size: {}", processedCount, worklist.size());
       }
 
-      // Extract call sites (and instantiated types for RTA)
+      // Extract call sites and instantiated types
       MethodAnalysisResult analysisResult = analyzeMethod(method);
-
-      if (useRta) {
-        instantiatedTypes.addAll(analysisResult.instantiatedTypes);
-      }
+      instantiatedTypes.addAll(analysisResult.instantiatedTypes);
 
       for (CallSite callSite : analysisResult.callSites) {
-        Set<MethodSignature> targets;
-        if (useRta) {
-          targets = hierarchy.resolveCallSiteRTA(callSite, instantiatedTypes);
-        } else {
-          targets = hierarchy.resolveCallSite(callSite);
-        }
+        Set<MethodSignature> targets = hierarchy.resolveCallSiteRTA(callSite, instantiatedTypes);
 
         for (MethodSignature target : targets) {
           edges.add(new CallGraphResult.Edge(method, target));

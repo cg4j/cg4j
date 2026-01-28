@@ -16,7 +16,7 @@ A command-line tool to build call graphs from Java JAR files using IBM WALA (T.J
 
 ## Features
 
-- Builds 0-CFA call graphs using Class Hierarchy Analysis (CHA)
+- Builds 0-CFA call graphs using Rapid Type Analysis (RTA)
 - Analyzes JAR files and their dependencies
 - Generates all public methods as entry points
 - Outputs call graph to CSV file
