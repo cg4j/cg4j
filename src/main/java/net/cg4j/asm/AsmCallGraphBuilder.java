@@ -120,6 +120,26 @@ public final class AsmCallGraphBuilder {
   }
 
   /**
+   * Finds all static initializer methods from APPLICATION and EXTENSION classes.
+   *
+   * @return set of clinit method signatures
+   */
+  private Set<MethodSignature> findClinitMethods() {
+    Set<MethodSignature> clinits = new HashSet<>();
+
+    for (ClassInfo classInfo : hierarchy.getAllClasses().values()) {
+      if (classInfo.getLoaderType() == ClassLoaderType.PRIMORDIAL) {
+        continue;
+      }
+      if (classInfo.hasClinit()) {
+        clinits.add(new MethodSignature(classInfo.getName(), "<clinit>", "()V"));
+      }
+    }
+
+    return clinits;
+  }
+
+  /**
    * Runs the worklist algorithm to compute reachable methods and call edges.
    *
    * @param entryPoints the set of entry point methods
@@ -144,6 +164,15 @@ public final class AsmCallGraphBuilder {
     // Add edges from boot to all entry points
     for (MethodSignature entry : entryPoints) {
       edges.add(new CallGraphResult.Edge(bootMethod, entry));
+    }
+
+    // Add edges from boot to <clinit> methods for APPLICATION classes
+    for (MethodSignature clinit : findClinitMethods()) {
+      edges.add(new CallGraphResult.Edge(bootMethod, clinit));
+      // Add <clinit> to worklist so its call sites are analyzed
+      if (!reachable.contains(clinit)) {
+        worklist.add(clinit);
+      }
     }
 
     int processedCount = 0;

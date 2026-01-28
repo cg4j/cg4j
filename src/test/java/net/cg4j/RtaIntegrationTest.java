@@ -6,6 +6,7 @@ import org.junit.jupiter.api.TestInstance;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -122,5 +123,58 @@ class RtaIntegrationTest extends BaseIntegrationTest {
 
     String firstLine = Files.lines(outputFile.toPath()).findFirst().orElse("");
     assertThat(firstLine).isEqualTo("source_method,target_method");
+  }
+
+  /**
+   * Integration test: Verifies that RTA produces clinit edges from boot.
+   * Expects {@code <boot> -> <clinit>} edges to exist in the output.
+   */
+  @Test
+  void testRtaEngine_ProducesClinitEdges() throws IOException {
+    outputFile = TestUtils.createTempOutputFile();
+
+    int exitCode = TestUtils.runMain(
+        okhttpJar.getPath(),
+        "-d", okhttpDeps.getPath(),
+        "-o", outputFile.getPath(),
+        "--engine=asm",
+        "--include-rt=false"
+    );
+
+    assertThat(exitCode).isEqualTo(0);
+
+    List<String[]> edges = TestUtils.parseCSV(outputFile);
+    boolean hasClinitEdge = edges.stream()
+        .anyMatch(e -> e[0].equals("<boot>") && e[1].contains("<clinit>"));
+    assertThat(hasClinitEdge)
+        .as("Expected <boot> -> <clinit> edges in output")
+        .isTrue();
+  }
+
+  /**
+   * Integration test: Verifies clinit edges are only for non-Primordial classes.
+   * Expects no {@code <boot> -> java/*.<clinit>} edges when RT is excluded.
+   */
+  @Test
+  void testRtaEngine_ClinitEdgesAreNonPrimordial() throws IOException {
+    outputFile = TestUtils.createTempOutputFile();
+
+    int exitCode = TestUtils.runMain(
+        slf4jJar.getPath(),
+        "-o", outputFile.getPath(),
+        "--engine=asm",
+        "--include-rt=false"
+    );
+
+    assertThat(exitCode).isEqualTo(0);
+
+    List<String[]> edges = TestUtils.parseCSV(outputFile);
+    boolean hasPrimordialClinit = edges.stream()
+        .anyMatch(e -> e[0].equals("<boot>")
+            && e[1].contains("<clinit>")
+            && e[1].startsWith("java/"));
+    assertThat(hasPrimordialClinit)
+        .as("Expected no <boot> -> java/*.<clinit> edges when RT excluded")
+        .isFalse();
   }
 }

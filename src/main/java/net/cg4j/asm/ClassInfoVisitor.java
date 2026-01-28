@@ -13,12 +13,16 @@ import java.util.Set;
  */
 public final class ClassInfoVisitor extends ClassVisitor {
 
+  private static final String CLINIT_NAME = "<clinit>";
+  private static final String CLINIT_DESCRIPTOR = "()V";
+
   private String name;
   private String superName;
   private Set<String> interfaces = new HashSet<>();
   private Set<MethodSignature> methods = new HashSet<>();
   private int access;
   private final ClassLoaderType loaderType;
+  private boolean hasClinit;
 
   /**
    * Creates a class info visitor.
@@ -45,6 +49,10 @@ public final class ClassInfoVisitor extends ClassVisitor {
   public MethodVisitor visitMethod(int access, String name, String descriptor,
                                    String signature, String[] exceptions) {
     methods.add(new MethodSignature(this.name, name, descriptor, access));
+    // Detect static initializer
+    if (CLINIT_NAME.equals(name) && CLINIT_DESCRIPTOR.equals(descriptor)) {
+      hasClinit = true;
+    }
     // We don't need to visit method body for class info extraction
     return null;
   }
@@ -54,7 +62,7 @@ public final class ClassInfoVisitor extends ClassVisitor {
    * Must be called after the class has been visited.
    */
   public ClassInfo getClassInfo() {
-    return new ClassInfo(name, superName, interfaces, methods, access, loaderType);
+    return new ClassInfo(name, superName, interfaces, methods, access, loaderType, hasClinit);
   }
 
   /**

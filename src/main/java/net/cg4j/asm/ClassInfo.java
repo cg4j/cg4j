@@ -15,6 +15,7 @@ public final class ClassInfo {
   private final Set<MethodSignature> methods;
   private final int access;
   private final ClassLoaderType loaderType;
+  private final boolean hasClinit;
 
   /**
    * Creates class info.
@@ -25,15 +26,18 @@ public final class ClassInfo {
    * @param methods declared methods
    * @param access class access flags
    * @param loaderType the class loader this class belongs to
+   * @param hasClinit true if the class has a static initializer
    */
   public ClassInfo(String name, String superName, Set<String> interfaces,
-                   Set<MethodSignature> methods, int access, ClassLoaderType loaderType) {
+                   Set<MethodSignature> methods, int access, ClassLoaderType loaderType,
+                   boolean hasClinit) {
     this.name = name;
     this.superName = superName;
     this.interfaces = Collections.unmodifiableSet(new HashSet<>(interfaces));
     this.methods = Collections.unmodifiableSet(new HashSet<>(methods));
     this.access = access;
     this.loaderType = loaderType;
+    this.hasClinit = hasClinit;
   }
 
   public String getName() {
@@ -58,6 +62,13 @@ public final class ClassInfo {
 
   public ClassLoaderType getLoaderType() {
     return loaderType;
+  }
+
+  /**
+   * Returns true if this class has a static initializer ({@code <clinit>}).
+   */
+  public boolean hasClinit() {
+    return hasClinit;
   }
 
   /**

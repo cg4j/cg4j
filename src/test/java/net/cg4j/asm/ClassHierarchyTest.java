@@ -26,19 +26,19 @@ class ClassHierarchyTest {
     methods.add(new MethodSignature("java/lang/Object", "toString", "()Ljava/lang/String;"));
 
     ClassInfo objectClass = new ClassInfo("java/lang/Object", null, Collections.emptySet(),
-        methods, Opcodes.ACC_PUBLIC, ClassLoaderType.PRIMORDIAL);
+        methods, Opcodes.ACC_PUBLIC, ClassLoaderType.PRIMORDIAL, false);
 
     Set<MethodSignature> parentMethods = new HashSet<>();
     parentMethods.add(new MethodSignature("com/example/Parent", "parentMethod", "()V"));
 
     ClassInfo parentClass = new ClassInfo("com/example/Parent", "java/lang/Object",
-        Collections.emptySet(), parentMethods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
+        Collections.emptySet(), parentMethods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION, false);
 
     Set<MethodSignature> childMethods = new HashSet<>();
     childMethods.add(new MethodSignature("com/example/Child", "childMethod", "()V"));
 
     ClassInfo childClass = new ClassInfo("com/example/Child", "com/example/Parent",
-        Collections.emptySet(), childMethods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
+        Collections.emptySet(), childMethods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION, false);
 
     Map<String, ClassInfo> classes = Map.of(
         "java/lang/Object", objectClass,
@@ -70,13 +70,13 @@ class ClassHierarchyTest {
     objectMethods.add(new MethodSignature("java/lang/Object", "toString", "()Ljava/lang/String;"));
 
     ClassInfo objectClass = new ClassInfo("java/lang/Object", null, Collections.emptySet(),
-        objectMethods, Opcodes.ACC_PUBLIC, ClassLoaderType.PRIMORDIAL);
+        objectMethods, Opcodes.ACC_PUBLIC, ClassLoaderType.PRIMORDIAL, false);
 
     Set<MethodSignature> childMethods = new HashSet<>();
     childMethods.add(new MethodSignature("com/example/Child", "myMethod", "()V"));
 
     ClassInfo childClass = new ClassInfo("com/example/Child", "java/lang/Object",
-        Collections.emptySet(), childMethods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
+        Collections.emptySet(), childMethods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION, false);
 
     Map<String, ClassInfo> classes = Map.of(
         "java/lang/Object", objectClass,
@@ -106,19 +106,19 @@ class ClassHierarchyTest {
     parentMethods.add(new MethodSignature("com/example/Parent", "doSomething", "()V"));
 
     ClassInfo parentClass = new ClassInfo("com/example/Parent", "java/lang/Object",
-        Collections.emptySet(), parentMethods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
+        Collections.emptySet(), parentMethods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION, false);
 
     Set<MethodSignature> child1Methods = new HashSet<>();
     child1Methods.add(new MethodSignature("com/example/Child1", "doSomething", "()V"));
 
     ClassInfo child1Class = new ClassInfo("com/example/Child1", "com/example/Parent",
-        Collections.emptySet(), child1Methods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
+        Collections.emptySet(), child1Methods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION, false);
 
     Set<MethodSignature> child2Methods = new HashSet<>();
     // Child2 inherits doSomething from Parent
 
     ClassInfo child2Class = new ClassInfo("com/example/Child2", "com/example/Parent",
-        Collections.emptySet(), child2Methods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
+        Collections.emptySet(), child2Methods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION, false);
 
     Map<String, ClassInfo> classes = Map.of(
         "com/example/Parent", parentClass,
@@ -152,7 +152,7 @@ class ClassHierarchyTest {
         Opcodes.ACC_PUBLIC));
 
     ClassInfo myClass = new ClassInfo("com/example/MyClass", "java/lang/Object",
-        Collections.emptySet(), methods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION);
+        Collections.emptySet(), methods, Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION, false);
 
     Map<String, ClassInfo> classes = Map.of("com/example/MyClass", myClass);
     ClassHierarchy hierarchy = new ClassHierarchy(classes);
