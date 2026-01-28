@@ -82,3 +82,21 @@ CSV with method URIs: `package/Class.method:(descriptor)`
 - **IBM WALA 1.6.12** - Call graph analysis framework
 - **Picocli 4.7.5** - CLI framework
 - **Log4j 2.20.0** - Logging
+
+## Benchmarking
+
+**Script**: `benchmark/compare_cg.py` - Compare call graph CSV files
+
+```bash
+# Show comparison table (nodes/edges with differences)
+python benchmark/compare_cg.py cg1.csv cg2.csv
+
+# Show edge set intersection (Venn diagram style)
+python benchmark/compare_cg.py --diff cg1.csv cg2.csv
+
+# Show both tables
+python benchmark/compare_cg.py --count --diff cg1.csv cg2.csv
+```
+
+- `--count`: Node/edge count comparison with percentages (default behavior)
+- `--diff`: Edge set analysis showing only in CG1, intersection, only in CG2, and totals
