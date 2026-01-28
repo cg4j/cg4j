@@ -75,4 +75,21 @@ class MethodSignatureTest {
     assertThat(noFlagsMethod.isAbstract()).isFalse();
     assertThat(noFlagsMethod.getAccess()).isEqualTo(0);
   }
+
+  /**
+   * Unit test: Tests boot method URI format matches WALA's convention.
+   * Expects synthetic boot method to return just "&lt;boot&gt;" instead of full URI.
+   */
+  @Test
+  void testBootMethodUri_MatchesWalaConvention() {
+    MethodSignature bootMethod = new MethodSignature("<boot>", "fakeRoot", "()V");
+
+    // Boot method should return just "<boot>" to match WALA's convention
+    assertThat(bootMethod.toUri()).isEqualTo("<boot>");
+    assertThat(bootMethod.toString()).isEqualTo("<boot>");
+
+    // Regular methods should still use full URI format
+    MethodSignature regularMethod = new MethodSignature("com/example/MyClass", "method", "()V");
+    assertThat(regularMethod.toUri()).isEqualTo("com/example/MyClass.method:()V");
+  }
 }

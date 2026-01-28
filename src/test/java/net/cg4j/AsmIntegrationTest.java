@@ -148,8 +148,8 @@ class AsmIntegrationTest extends BaseIntegrationTest {
       String source = edge[0];
       String target = edge[1];
 
-      // Source should be <boot> or have method URI format
-      if (!source.equals("<boot>.fakeRoot:()V")) {
+      // Source should be <boot> (matching WALA's convention) or have method URI format
+      if (!source.equals("<boot>")) {
         assertThat(source).matches(".*\\..*:.*");
       }
 
