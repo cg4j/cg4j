@@ -82,8 +82,13 @@ public final class MethodSignature {
 
   /**
    * Formats the method as URI: owner.name:descriptor
+   * For the synthetic boot method, returns just "&lt;boot&gt;" to match WALA's convention.
    */
   public String toUri() {
+    // Match WALA's convention: synthetic boot method is just "<boot>"
+    if ("<boot>".equals(owner)) {
+      return "<boot>";
+    }
     return owner + "." + name + ":" + descriptor;
   }
 
