@@ -33,7 +33,8 @@ class ClassInfoTest {
         interfaces,
         methods,
         Opcodes.ACC_PUBLIC,
-        ClassLoaderType.APPLICATION
+        ClassLoaderType.APPLICATION,
+        false
     );
 
     assertThat(info.getName()).isEqualTo("com/example/MyClass");
@@ -61,7 +62,8 @@ class ClassInfoTest {
         Collections.emptySet(),
         methods,
         Opcodes.ACC_PUBLIC,
-        ClassLoaderType.APPLICATION
+        ClassLoaderType.APPLICATION,
+        false
     );
 
     assertThat(info.hasMethod("myMethod", "()V")).isTrue();
@@ -82,7 +84,8 @@ class ClassInfoTest {
         Collections.emptySet(),
         Collections.emptySet(),
         Opcodes.ACC_PUBLIC | Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT,
-        ClassLoaderType.APPLICATION
+        ClassLoaderType.APPLICATION,
+        false
     );
 
     assertThat(info.isInterface()).isTrue();
