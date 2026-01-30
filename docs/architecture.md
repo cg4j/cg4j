@@ -6,7 +6,7 @@ This document shows the internal architecture and data flow of cg4j.
 
 The ASM engine is a lightweight alternative to WALA using the ASM bytecode library with RTA (Rapid Type Analysis) for call resolution.
 
-```plantuml
+```kroki-plantuml
 @startuml
 skinparam backgroundColor white
 skinparam defaultTextAlignment center
