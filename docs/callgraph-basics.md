@@ -25,9 +25,58 @@ processData() → writeFile()
 - **Dead code detection**: Find unreachable methods
 - **Testing**: Identify test coverage gaps
 
+## Types of Method Calls in Java
+
+Understanding how method calls work at the bytecode level is essential for call graph construction.
+
+### Static Calls (invokestatic)
+
+Static calls invoke methods declared with the `static` keyword. These belong to the class itself rather than to instances. The target method is resolved at compile time because static methods cannot be overridden.
+
+```java
+Math.abs(-5);           // Static call
+Collections.sort(list); // Static call
+```
+
+### Virtual Calls (invokevirtual)
+
+Virtual calls invoke non-static instance methods that can be overridden by subclasses. The JVM determines at runtime which implementation to execute based on the actual object type, not the declared type. This enables polymorphism - all instance methods in Java are virtual by default.
+
+```java
+Animal a = new Dog();
+a.speak();  // Virtual call - resolved at runtime to Dog.speak()
+```
+
+**Exception cases** (resolved statically):
+- **Private methods**: Cannot be overridden
+- **Final methods**: Cannot be overridden
+- **Super calls**: `super.method()` always calls the superclass implementation
+
+### Special Calls (invokespecial)
+
+Special calls invoke constructors, superclass methods, and private methods. They are resolved statically because the target is unambiguous.
+
+```java
+new ArrayList<>();      // Constructor call
+super.toString();       // Superclass method call
+this.privateMethod();   // Private method call
+```
+
+### Dynamic Calls (invokedynamic)
+
+Dynamic calls use the `invokedynamic` bytecode instruction, introduced for dynamically-typed JVM languages. Java uses it for lambda expressions and some optimizations (records, string concatenation).
+
+```java
+list.forEach(x -> System.out.println(x));  // Lambda uses invokedynamic
+```
+
+### Why This Matters for Call Graphs
+
+Static, special, and dynamic calls have a single target - easy to resolve. Virtual calls are the challenge: the target depends on the runtime type. This is why call graph algorithms like CHA and RTA exist - they approximate which implementations might be called at virtual call sites.
+
 ## Call Graph Construction Algorithms
 
-cg4j supports two algorithms for resolving virtual method calls: **CHA** and **RTA**.
+There are two common algorithms for resolving virtual method calls: **CHA** and **RTA**. cg4j uses RTA for its analysis.
 
 ### Class Hierarchy Analysis (CHA)
 
@@ -140,51 +189,44 @@ class Bird extends Animal {
 - You want to reduce false positives
 - Analysis time is acceptable
 
-## How cg4j Uses CHA and RTA
+## How cg4j Uses These Algorithms
 
-cg4j provides two engines with different algorithm support:
+cg4j provides two engines:
 
-### WALA Engine (Default)
+### WALA Engine
 
-- Uses **0-CFA** (Zero Context-Flow-Insensitive Analysis) with CHA
+- Uses **0-CFA** (Zero Context-Flow-Insensitive Analysis)
 - More mature and feature-rich
 - Handles complex Java features
 
 ### ASM Engine
 
-- Supports both **CHA** and **RTA** algorithms
+- Uses **RTA** (Rapid Type Analysis)
 - Faster and more lightweight
 - Good for straightforward call graph construction
 
 **Usage:**
 ```bash
-# ASM with CHA (default)
-java -jar cg4j.jar -j app.jar --engine=asm --algorithm=cha
+# ASM engine (uses RTA)
+java -jar cg4j.jar -j app.jar --engine=asm
 
-# ASM with RTA (more precise)
-java -jar cg4j.jar -j app.jar --engine=asm --algorithm=rta
-
-# WALA (uses 0-CFA with CHA)
+# WALA engine (uses 0-CFA)
 java -jar cg4j.jar -j app.jar --engine=wala
 ```
 
 ### Worklist Algorithm
 
-Both CHA and RTA use a worklist-based approach:
+cg4j uses a worklist-based approach for call graph construction:
 
 1. **Start with entry points** (all public methods in cg4j)
 
 2. **For each reachable method:**
    - Scan method bytecode for call sites
-   - Track instantiations (`new` expressions) - **RTA only**
-   - Resolve virtual calls using CHA or RTA
+   - Track instantiations (`new` expressions)
+   - Resolve virtual calls using RTA
    - Add discovered methods to worklist
 
 3. **Repeat** until no new methods are discovered
-
-**Key difference:**
-- **CHA**: Resolves calls to all subtypes in hierarchy
-- **RTA**: Resolves calls only to instantiated subtypes
 
 ## How cg4j Builds Call Graphs
 
@@ -194,8 +236,8 @@ Both CHA and RTA use a worklist-based approach:
 4. **Run worklist algorithm**:
    - Process each reachable method
    - Extract call sites from bytecode
-   - Track instantiations (RTA only)
-   - Resolve virtual calls using CHA or RTA
+   - Track instantiations
+   - Resolve virtual calls using RTA
    - Expand the call graph iteratively
 5. **Output CSV** with source → target edges
 
@@ -204,7 +246,7 @@ Both CHA and RTA use a worklist-based approach:
 ### What cg4j Handles
 
 ✅ Direct method calls
-✅ Virtual method calls (using CHA)
+✅ Virtual method calls (using RTA)
 ✅ Constructor calls
 ✅ Static method calls
 
@@ -248,13 +290,13 @@ Both CHA and RTA use a worklist-based approach:
 
 ## Quick Reference
 
-| What You Want | WALA (0-CFA/CHA) | ASM with CHA | ASM with RTA |
-|---------------|------------------|--------------|--------------|
-| Fast analysis | ✅ Fast | ✅ Very fast | ✅ Fast |
-| More precision | ⚠️ Moderate | ⚠️ Lower | ✅ Higher |
-| Handle reflection | ❌ Limited | ❌ No | ❌ No |
-| Sound results | ✅ Yes | ✅ Yes | ✅ Yes |
-| Large programs | ✅ Yes | ✅ Yes | ✅ Yes |
-| Smaller call graphs | ⚠️ Moderate | ❌ Larger | ✅ Smaller |
+| What You Want | WALA (0-CFA) | ASM (RTA) |
+|---------------|--------------|-----------|
+| Fast analysis | ✅ Fast | ✅ Very fast |
+| More precision | ⚠️ Moderate | ✅ Higher |
+| Handle reflection | ❌ Limited | ❌ No |
+| Sound results | ✅ Yes | ✅ Yes |
+| Large programs | ✅ Yes | ✅ Yes |
+| Smaller call graphs | ⚠️ Moderate | ✅ Smaller |
 
-**Recommendation**: Start with ASM+RTA for better precision. Use WALA for complex Java features or ASM+CHA for maximum speed.
+**Recommendation**: Start with ASM for faster analysis and better precision. Use WALA for complex Java features.
