@@ -29,3 +29,7 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.superfences
 
+plugins:
+  - kroki:
+      server_url: https://kroki.io
+      fence_prefix: kroki-
