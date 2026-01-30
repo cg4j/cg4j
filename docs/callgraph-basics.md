@@ -216,21 +216,17 @@ java -jar cg4j.jar -j app.jar --engine=wala
 
 ### Worklist Algorithm
 
-Both CHA and RTA use a worklist-based approach:
+cg4j uses a worklist-based approach for call graph construction:
 
 1. **Start with entry points** (all public methods in cg4j)
 
 2. **For each reachable method:**
    - Scan method bytecode for call sites
-   - Track instantiations (`new` expressions) - **RTA only**
-   - Resolve virtual calls using CHA or RTA
+   - Track instantiations (`new` expressions)
+   - Resolve virtual calls using RTA
    - Add discovered methods to worklist
 
 3. **Repeat** until no new methods are discovered
-
-**Key difference:**
-- **CHA**: Resolves calls to all subtypes in hierarchy
-- **RTA**: Resolves calls only to instantiated subtypes
 
 ## How cg4j Builds Call Graphs
 
@@ -240,8 +236,8 @@ Both CHA and RTA use a worklist-based approach:
 4. **Run worklist algorithm**:
    - Process each reachable method
    - Extract call sites from bytecode
-   - Track instantiations (RTA only)
-   - Resolve virtual calls using CHA or RTA
+   - Track instantiations
+   - Resolve virtual calls using RTA
    - Expand the call graph iteratively
 5. **Output CSV** with source → target edges
 
@@ -250,7 +246,7 @@ Both CHA and RTA use a worklist-based approach:
 ### What cg4j Handles
 
 ✅ Direct method calls
-✅ Virtual method calls (using CHA)
+✅ Virtual method calls (using RTA)
 ✅ Constructor calls
 ✅ Static method calls
 
