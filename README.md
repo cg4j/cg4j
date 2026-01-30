@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/cg4j-logo.svg" alt="cg4j logo" width="256" height="256">
+  <img src="assets/cg4j-logo.svg" alt="cg4j logo" width="384" height="384">
 </p>
 
 # CG4j - Call Graph Generation for Java
