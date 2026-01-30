@@ -2,86 +2,68 @@
 
 This document shows the internal architecture and data flow of cg4j.
 
-## System Flow
+## ASM Engine Flow
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Input Phase                             │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-                    ┌───────────────────────┐
-                    │   Target JAR File     │
-                    └───────────┬───────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     Analysis Scope Setup                        │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                ┌───────────────┼───────────────┐
-                ▼               ▼               ▼
-        ┌──────────────┐  ┌──────────┐  ┌────────────┐
-        │ Primordial   │  │Extension │  │Application │
-        │ (JDK/RT)     │  │ (Deps)   │  │ (Target)   │
-        └──────┬───────┘  └────┬─────┘  └─────┬──────┘
-               │               │               │
-               └───────────────┼───────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              Class Hierarchy Analysis (CHA)                     │
-│  • Builds inheritance tree                                      │
-│  • Resolves virtual method calls                                │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Entry Points Generation                       │
-│  • Find all public methods in Application loader                │
-│  • Skip Primordial and Extension classes                        │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     0-CFA Call Graph Build                      │
-│  • Start from entry points                                      │
-│  • Use CHA to resolve method calls                              │
-│  • Iterate until fixpoint (no new edges)                        │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Edge Extraction (Stream API)                 │
-│  • Filter fake methods                                          │
-│  • Normalize boot methods to <boot>                             │
-│  • Filter RT classes (if includeRt=false)                       │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      CSV Output                                 │
-│  source_method,target_method                                    │
-│  <boot>,org/slf4j/Logger.info:(...)                            │
-│  org/slf4j/Logger.info:(...),org/slf4j/helpers/...              │
-└─────────────────────────────────────────────────────────────────┘
+The ASM engine is a lightweight alternative to WALA using the ASM bytecode library with RTA (Rapid Type Analysis) for call resolution.
+
+```plantuml
+@startuml
+skinparam backgroundColor white
+skinparam defaultTextAlignment center
+
+|Input|
+start
+:Target JAR File;
+
+|Class Loading|
+fork
+  :JDK Classes\n(Primordial);
+fork again
+  :Dependency JARs\n(Extension);
+fork again
+  :Application Classes\n(Target JAR);
+end fork
+
+|Analysis|
+:Build Class Hierarchy;
+note right: Inheritance tree for\nvirtual call resolution
+
+:Find Entry Points;
+note right: Public methods from\nApplication classes
+
+:Worklist Algorithm (RTA);
+note right
+  • Pop method from worklist
+  • Parse bytecode with ASM
+  • Extract call sites & NEW instructions
+  • Resolve virtual calls using RTA
+  • Add new targets to worklist
+  • Repeat until fixpoint
+end note
+
+|Output|
+:Filter Edges;
+note right: Remove RT classes\nif includeRt=false
+
+:CSV Output;
+stop
+
+@enduml
 ```
 
 ## Notes
 
 ### Class Loaders
-- **Primordial:** Java runtime classes (JDK, RT jar) - standard library code
+- **Primordial:** Java runtime classes (JDK) - standard library code
 - **Extension:** Dependency JARs - external libraries your application uses
 - **Application:** Target JAR being analyzed - your application code
 
 ### Keywords
+- **RTA (Rapid Type Analysis):** Uses instantiated types (from NEW instructions) to prune virtual call targets
+- **Worklist Algorithm:** Iteratively processes methods until no new reachable methods are found
+- **ASM:** Lightweight Java bytecode manipulation library used for parsing .class files
+- **Call Site:** A method invocation instruction (INVOKE*) in bytecode
 - **RT (Runtime):** Java runtime classes from the JDK (java.*, javax.*, etc.)
-- **<boot>:** Placeholder for WALA's fake root methods used to bootstrap analysis
-- **CHA (Class Hierarchy Analysis):** Algorithm that uses inheritance tree to resolve method calls
-- **0-CFA:** Zero-context-flow-insensitive analysis - fast call graph construction
 - **Entry Points:** Starting methods for analysis (all public methods in Application loader)
-
-### WALA Fake Methods
-WALA creates artificial methods for analysis bootstrapping:
-- `FakeRootClass.fakeRootMethod` - Artificial entry point that calls all real entry points
-- `FakeRootClass.fakeWorldClinit` - Artificial class initializer
-- These are normalized to `<boot>` in the output for clarity
+- **<boot>:** Synthetic root method that calls all entry points and static initializers
+- **Fixpoint:** State where no new methods or edges are discovered
