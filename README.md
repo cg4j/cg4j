@@ -44,7 +44,7 @@ Or using Maven directly:
 mvn clean package
 ```
 
-This creates `target/cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar`
+This creates `target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar`
 
 ## Installation
 
@@ -129,10 +129,10 @@ cg4j -j myapp.jar -o output.csv -d lib/
 Or run directly from JAR without installation:
 ```bash
 # Basic usage - outputs to callgraph.csv
-java -jar target/cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar -j myapp.jar
+java -jar target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar -j myapp.jar
 
 # With dependencies and custom output
-java -jar target/cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar -j myapp.jar -o output.csv -d lib/
+java -jar target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar -j myapp.jar -o output.csv -d lib/
 ```
 
 **Options:**

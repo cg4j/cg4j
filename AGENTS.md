@@ -8,7 +8,7 @@ This document provides coding guidelines for AI agents working on the cg4j (Call
 - **Build Tool**: Maven 3.6+
 - **Main Package**: `net.cg4j`
 - **Entry Point**: `net.cg4j.Main`
-- **Artifact**: `cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar`
+- **Artifact**: `cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar`
 - **Note**: Ignore `.venv/` folder for context/analysis (Python virtual environment), but Python/pip tools may be used to run Python scripts
 
 ## Build Commands
@@ -41,8 +41,8 @@ mvn clean test jacoco:report
 - Faster execution (~30% improvement on multi-core systems)
 
 **Test Structure**:
-- Unit tests: `src/test/java/io/drmir/CallGraphBuilderTest.java` (9 tests)
-- Integration tests: `src/test/java/io/drmir/IntegrationTest.java` (12 tests)
+- Unit tests: `src/test/java/net/cg4j/CallGraphBuilderTest.java` (9 tests)
+- Integration tests: `src/test/java/net/cg4j/IntegrationTest.java` (12 tests)
 - Test resources: `src/test/resources/test-jars/` (fixed JAR versions)
 - Coverage target: 90% line coverage (enforced by JaCoCo)
 
