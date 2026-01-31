@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/cg4j-logo.svg" alt="cg4j logo" width="384" height="384">
+  <img src="docs/assets/cg4j-logo.svg" alt="cg4j logo" width="256" height="256">
 </p>
 
 # CG4j - Call Graph Generation for Java
 
-A command-line tool to build call graphs from Java JAR files using IBM WALA (T.J. Watson Libraries for Analysis).
+A command-line tool to build call graphs for Java programs.
 
 ## Table of Contents
 

@@ -9,6 +9,8 @@ nav:
 theme:
   name: material
   language: en
+  logo: assets/cg4j-logo.svg
+  favicon: assets/cg4j-logo.svg
   palette:
     scheme: slate
   features:
