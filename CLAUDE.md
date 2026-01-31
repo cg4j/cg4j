@@ -8,8 +8,8 @@ cg4j (Call Graph for Java) builds call graphs from Java JAR files using IBM WALA
 
 - **Language**: Java 11+ (CI uses Java 21)
 - **Build Tool**: Maven 3.6+
-- **Package**: `io.drmir`
-- **Entry Point**: `io.drmir.Main`
+- **Package**: `net.cg4j`
+- **Entry Point**: `net.cg4j.Main`
 - **Note**: Ignore `.venv/` folder for context/analysis (Python virtual environment), but Python/pip tools may be used to run Python scripts
 
 ## Build and Test Commands
@@ -28,7 +28,7 @@ mvn test -Dtest=IntegrationTest
 mvn clean test jacoco:report
 
 # Run the tool
-java -jar target/cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar <jarfile> -o output.csv -d deps/
+java -jar target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar <jarfile> -o output.csv -d deps/
 ```
 
 ## Architecture

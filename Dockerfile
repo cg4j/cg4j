@@ -17,7 +17,7 @@ FROM eclipse-temurin:21-jdk-jammy
 WORKDIR /app
 
 # Copy only the fat JAR from build stage
-COPY --from=builder /build/target/cg4j-cli-0.1.0-SNAPSHOT-jar-with-dependencies.jar /app/cg4j.jar
+COPY --from=builder /build/target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar /app/cg4j.jar
 
 # Create volume mount points
 RUN mkdir -p /input /output /deps
