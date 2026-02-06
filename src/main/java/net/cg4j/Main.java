@@ -3,6 +3,7 @@ package net.cg4j;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import net.cg4j.asm.AsmCallGraphBuilder;
 import net.cg4j.asm.CallGraphResult;
+import net.cg4j.asm.ScopeExclusions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import picocli.CommandLine;
@@ -58,6 +59,11 @@ public class Main implements Callable<Integer> {
           description = "Call graph engine: wala or asm (default: ${DEFAULT-VALUE})",
           defaultValue = "wala")
   private String engine;
+
+  @Option(names = {"--exclusions"},
+          description = "Exclusion patterns file for ASM engine scope "
+              + "(default: built-in WALA-compatible exclusions)")
+  private File exclusionsFile;
 
   public static void main(String[] args) {
     int exitCode = new CommandLine(new Main()).execute(args);
@@ -127,8 +133,19 @@ public class Main implements Callable<Integer> {
    * Builds call graph using ASM engine.
    */
   private int buildWithAsm(List<File> dependencies) throws Exception {
+    // Load exclusions
+    ScopeExclusions exclusions;
+    if (exclusionsFile != null) {
+      exclusions = ScopeExclusions.loadFromFile(exclusionsFile);
+      logger.info("Loaded custom exclusions from: {}", exclusionsFile);
+    } else {
+      exclusions = ScopeExclusions.loadDefaults();
+      logger.info("Using default scope exclusions ({} patterns)", exclusions.patternCount());
+    }
+
     AsmCallGraphBuilder builder = new AsmCallGraphBuilder();
-    CallGraphResult result = builder.buildCallGraph(targetJar.getPath(), dependencies, includeRt);
+    CallGraphResult result = builder.buildCallGraph(
+        targetJar.getPath(), dependencies, includeRt, exclusions);
     logger.info("Total reachable methods: {}", result.getReachableMethods().size());
 
     // Write call graph to CSV
