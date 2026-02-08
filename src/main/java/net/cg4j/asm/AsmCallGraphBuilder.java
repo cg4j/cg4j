@@ -38,9 +38,11 @@ public final class AsmCallGraphBuilder {
    * @param jarFile the target JAR to analyze
    * @param dependencies list of dependency JAR files
    * @param includeRt whether to include JDK classes in the output
+   * @param exclusions scope exclusions to filter Primordial classes from hierarchy
    * @return the call graph result
    */
-  public CallGraphResult buildCallGraph(String jarFile, List<File> dependencies, boolean includeRt)
+  public CallGraphResult buildCallGraph(String jarFile, List<File> dependencies,
+                                         boolean includeRt, ScopeExclusions exclusions)
       throws IOException {
     logger.info("Loading classes...");
 
@@ -67,6 +69,15 @@ public final class AsmCallGraphBuilder {
     allClasses.putAll(appClasses);
     loadBytecode(List.of(targetJar), classBytecode);
     logger.info("Loaded {} application classes", appClasses.size());
+
+    // Step 1.5: Apply scope exclusions to Primordial classes
+    int beforeSize = allClasses.size();
+    allClasses = exclusions.applyExclusions(allClasses);
+    int excludedCount = beforeSize - allClasses.size();
+    if (excludedCount > 0) {
+      logger.info("Scope reduced to {} classes ({} excluded, {} patterns)",
+          allClasses.size(), excludedCount, exclusions.patternCount());
+    }
 
     // Step 2: Build class hierarchy
     logger.info("Building class hierarchy...");

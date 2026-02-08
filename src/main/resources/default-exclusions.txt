@@ -1,0 +1,19 @@
+# Default scope exclusions for ASM engine (matches WALA exclusions)
+# One Java regex pattern per line. Class names use '/' separators.
+# Only Primordial (JDK) classes are filtered; app/dep classes are never excluded.
+# Lines starting with '#' are comments. Blank lines are ignored.
+java/util/.*
+java/io/.*
+java/nio/.*
+java/net/.*
+java/math/.*
+java/awt/.*
+java/text/.*
+java/sql/.*
+java/security/.*
+java/time/.*
+javax/.*
+sun/.*
+com/sun/.*
+jdk/.*
+org/graalvm/.*
