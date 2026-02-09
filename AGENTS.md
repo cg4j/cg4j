@@ -240,24 +240,14 @@ git commit -m "<type>: <description>"
 
 ### CI/CD
 
-Add `[skip ci]` to commit message when changes don't affect build/test:
-- Documentation files (`*.md`, `README`)
-- Configuration files (`.gitignore`, IDE settings)
-- Scripts in `benchmark/` or non-test directories
-- Any files that don't modify Java sources, test files, or `pom.xml`
+Add `[skip ci]` to commit message for non-code changes:
+- Documentation (`*.md`, `README`)
+- Config files (`.gitignore`, IDE settings)
+- Non-test scripts (`benchmark/`)
 
 **Example**: `docs: update README [skip ci]`
 
-Skip CI when:
-- Updating documentation only
-- Changing comments or formatting with no logic changes
-- Adding example files or non-code assets
-
-Always run CI when modifying:
-- Java source files (`src/main/java/`)
-- Test files (`src/test/java/`)
-- Build configuration (`pom.xml`)
-- CI/CD configuration files
+Skip CI when changes don't affect: Java sources, test files, or `pom.xml`
 
 ### Configuration
 
