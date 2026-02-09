@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -193,6 +194,51 @@ class AsmIntegrationTest extends BaseIntegrationTest {
     assertThat(hasLambdaSource)
         .as("Expected edges from synthetic lambda classes to impl methods")
         .isTrue();
+  }
+
+  /**
+   * Integration test: Verifies fixed-point re-resolution connects virtual callers to lambda targets.
+   * Expects callers like FaultHidingSink.write to reach multiple lambda classes via dispatch.
+   */
+  @Test
+  void testAsmEngine_LambdaVirtualDispatch_OkHttp() throws IOException {
+    outputFile = TestUtils.createTempOutputFile();
+
+    int exitCode = TestUtils.runMain(
+        okhttpJar.getPath(),
+        "-d", okhttpDeps.getPath(),
+        "-o", outputFile.getPath(),
+        "--engine=asm",
+        "--include-rt=false"
+    );
+
+    assertThat(exitCode).isEqualTo(0);
+
+    List<String[]> edges = TestUtils.parseCSV(outputFile);
+
+    // FaultHidingSink.write calls Function1.invoke via INVOKEINTERFACE.
+    // Fixed-point re-resolution should connect it to multiple lambda targets:
+    //   wala/lambda$okhttp3$internal$cache$DiskLruCache$0
+    //   wala/lambda$okhttp3$internal$cache$DiskLruCache$Editor$0
+    String faultHidingSinkWrite = "okhttp3/internal/cache/FaultHidingSink.write:";
+    List<String> lambdaTargets = edges.stream()
+        .filter(e -> e[0].startsWith(faultHidingSinkWrite))
+        .map(e -> e[1])
+        .filter(t -> t.startsWith("wala/lambda$"))
+        .collect(Collectors.toList());
+
+    assertThat(lambdaTargets)
+        .as("FaultHidingSink.write should reach multiple lambda targets via virtual dispatch")
+        .hasSizeGreaterThanOrEqualTo(2);
+
+    // Verify at least two distinct lambda classes are targeted
+    Set<String> distinctLambdaClasses = lambdaTargets.stream()
+        .map(t -> t.substring(0, t.indexOf('.')))
+        .collect(Collectors.toSet());
+
+    assertThat(distinctLambdaClasses)
+        .as("FaultHidingSink.write should dispatch to at least 2 distinct lambda classes")
+        .hasSizeGreaterThanOrEqualTo(2);
   }
 
   /**

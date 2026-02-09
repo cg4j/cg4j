@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Enumeration;
@@ -167,6 +168,9 @@ public final class AsmCallGraphBuilder {
     // Track instantiated types for RTA
     Set<String> instantiatedTypes = new HashSet<>();
 
+    // Track virtual/interface call sites for fixed-point re-resolution
+    List<VirtualCallRecord> virtualCallRecords = new ArrayList<>();
+
     // Entry point classes are considered instantiated
     for (MethodSignature entry : entryPoints) {
       instantiatedTypes.add(entry.getOwner());
@@ -217,6 +221,11 @@ public final class AsmCallGraphBuilder {
             worklist.add(target);
           }
         }
+
+        // Record virtual/interface call sites for later re-resolution
+        if (callSite.isVirtual()) {
+          virtualCallRecords.add(new VirtualCallRecord(method, callSite));
+        }
       }
 
       // Process lambda/method-reference INVOKEDYNAMIC call sites
@@ -226,6 +235,67 @@ public final class AsmCallGraphBuilder {
     }
 
     logger.info("Worklist complete: {} reachable methods, {} edges", reachable.size(), edges.size());
+
+    // Fixed-point: re-resolve virtual call sites until no new edges are discovered.
+    // Lambda classes registered late in the worklist may not have been visible to
+    // earlier virtual dispatch resolutions.
+    int fixedPointPass = 0;
+    int newEdges;
+    do {
+      newEdges = 0;
+      fixedPointPass++;
+
+      for (VirtualCallRecord record : virtualCallRecords) {
+        Set<MethodSignature> targets = hierarchy.resolveCallSiteRTA(
+            record.callSite, instantiatedTypes);
+
+        for (MethodSignature target : targets) {
+          if (edges.add(new CallGraphResult.Edge(record.caller, target))) {
+            newEdges++;
+            if (!reachable.contains(target)) {
+              worklist.add(target);
+            }
+          }
+        }
+      }
+
+      // Process any newly discovered methods from new edges
+      while (!worklist.isEmpty()) {
+        MethodSignature method = worklist.poll();
+        if (reachable.contains(method)) {
+          continue;
+        }
+        reachable.add(method);
+
+        MethodAnalysisResult analysisResult = analyzeMethod(method);
+        instantiatedTypes.addAll(analysisResult.instantiatedTypes);
+
+        for (CallSite callSite : analysisResult.callSites) {
+          Set<MethodSignature> targets = hierarchy.resolveCallSiteRTA(
+              callSite, instantiatedTypes);
+
+          for (MethodSignature target : targets) {
+            edges.add(new CallGraphResult.Edge(method, target));
+            if (!reachable.contains(target)) {
+              worklist.add(target);
+            }
+          }
+
+          if (callSite.isVirtual()) {
+            virtualCallRecords.add(new VirtualCallRecord(method, callSite));
+          }
+        }
+
+        for (LambdaCallSite lambda : analysisResult.lambdaCallSites) {
+          processLambdaCallSite(method, lambda, edges, worklist, reachable, instantiatedTypes);
+        }
+      }
+
+      if (newEdges > 0) {
+        logger.info("Fixed-point pass {}: {} new edges", fixedPointPass, newEdges);
+      }
+    } while (newEdges > 0 && fixedPointPass < 10);
+
     return new WorklistResult(reachable, edges);
   }
 
@@ -423,6 +493,19 @@ public final class AsmCallGraphBuilder {
     WorklistResult(Set<MethodSignature> reachable, Set<CallGraphResult.Edge> edges) {
       this.reachable = reachable;
       this.edges = edges;
+    }
+  }
+
+  /**
+   * Records a virtual/interface call site and its caller for fixed-point re-resolution.
+   */
+  private static class VirtualCallRecord {
+    final MethodSignature caller;
+    final CallSite callSite;
+
+    VirtualCallRecord(MethodSignature caller, CallSite callSite) {
+      this.caller = caller;
+      this.callSite = callSite;
     }
   }
 
