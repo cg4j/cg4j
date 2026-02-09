@@ -211,6 +211,44 @@ python benchmark/compare_cg.py --count --diff cg1.csv cg2.csv
 
 ## Git
 
-- `.gitignore` excludes: `target/`, `*.csv`
-- Commit message style: Not specified, use conventional style
-- No pre-commit hooks configured
+### Workflow
+
+```bash
+# 1. Start: Create a feature branch (NEVER work on main/master)
+git checkout -b <feature-name>
+
+# 2. Finish: Stage, verify, and commit
+git add <files>
+git diff --cached --stat
+git commit -m "<type>: <description>"
+```
+
+### Commit Format
+
+`<type>: <short summary>` (under 50 chars, no period, present tense)
+
+**Types**: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
+
+**Examples**: `feat: add CSV export`, `fix: resolve NPE`
+
+### Rules
+
+- **Never push to `main` or `master`**
+- Don't commit secrets or generated files
+- Run tests before committing: `mvn test`
+- Keep commits atomic
+
+### CI/CD
+
+Add `[skip ci]` to commit message for non-code changes:
+- Documentation (`*.md`, `README`)
+- Config files (`.gitignore`, IDE settings)
+- Non-test scripts (`benchmark/`)
+
+**Example**: `docs: update README [skip ci]`
+
+Skip CI when changes don't affect: Java sources, test files, or `pom.xml`
+
+### Configuration
+
+- `.gitignore`: `target/`, `*.csv`, `.venv/`
