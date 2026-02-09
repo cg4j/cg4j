@@ -42,9 +42,11 @@ class RtaIntegrationTest extends BaseIntegrationTest {
     // No RT classes
     assertThat(TestUtils.hasRTClasses(outputFile)).isFalse();
 
-    // Only slf4j sources
+    // Only slf4j sources (and synthetic lambda classes derived from them)
     assertThat(TestUtils.getSourcePrefixes(outputFile))
-        .allMatch(prefix -> prefix.startsWith("org/slf4j") || prefix.equals("<boot"));
+        .allMatch(prefix -> prefix.startsWith("org/slf4j")
+            || prefix.equals("<boot")
+            || prefix.startsWith("wala/lambda$org$slf4j"));
   }
 
   /**

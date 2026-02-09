@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -28,9 +29,11 @@ public final class AsmCallGraphBuilder {
 
   private static final Logger logger = LogManager.getLogger(AsmCallGraphBuilder.class);
   private static final int PARSE_OPTIONS = ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES;
+  private static final String LAMBDA_CLASS_PREFIX = "wala/lambda$";
 
   private ClassHierarchy hierarchy;
   private Map<String, byte[]> classBytecode;
+  private final Map<String, Integer> lambdaCounters = new HashMap<>();
 
   /**
    * Builds a call graph for the given JAR file using RTA algorithm.
@@ -215,6 +218,11 @@ public final class AsmCallGraphBuilder {
           }
         }
       }
+
+      // Process lambda/method-reference INVOKEDYNAMIC call sites
+      for (LambdaCallSite lambda : analysisResult.lambdaCallSites) {
+        processLambdaCallSite(method, lambda, edges, worklist, reachable, instantiatedTypes);
+      }
     }
 
     logger.info("Worklist complete: {} reachable methods, {} edges", reachable.size(), edges.size());
@@ -228,7 +236,7 @@ public final class AsmCallGraphBuilder {
     byte[] bytecode = classBytecode.get(method.getOwner());
     if (bytecode == null) {
       // Class bytecode not available (e.g., JDK class)
-      return new MethodAnalysisResult(List.of(), Set.of());
+      return new MethodAnalysisResult(List.of(), Set.of(), List.of());
     }
 
     ClassReader reader = new ClassReader(bytecode);
@@ -243,11 +251,106 @@ public final class AsmCallGraphBuilder {
   private static class MethodAnalysisResult {
     final List<CallSite> callSites;
     final Set<String> instantiatedTypes;
+    final List<LambdaCallSite> lambdaCallSites;
 
-    MethodAnalysisResult(List<CallSite> callSites, Set<String> instantiatedTypes) {
+    MethodAnalysisResult(List<CallSite> callSites, Set<String> instantiatedTypes,
+                         List<LambdaCallSite> lambdaCallSites) {
       this.callSites = callSites;
       this.instantiatedTypes = instantiatedTypes;
+      this.lambdaCallSites = lambdaCallSites;
     }
+  }
+
+  /**
+   * Processes a single lambda INVOKEDYNAMIC call site by creating a synthetic lambda class
+   * and edges matching WALA's two-hop pattern: caller -> SAM, SAM -> impl.
+   */
+  private void processLambdaCallSite(MethodSignature caller, LambdaCallSite lambda,
+                                     Set<CallGraphResult.Edge> edges,
+                                     Deque<MethodSignature> worklist,
+                                     Set<MethodSignature> reachable,
+                                     Set<String> instantiatedTypes) {
+    // Generate synthetic class name: wala/lambda$<owner/$->$>$<index>
+    String syntheticName = generateLambdaClassName(caller.getOwner());
+
+    // Determine loader type from the enclosing class
+    ClassInfo ownerClass = hierarchy.getClass(caller.getOwner());
+    ClassLoaderType loaderType = ownerClass != null
+        ? ownerClass.getLoaderType() : ClassLoaderType.APPLICATION;
+
+    // Create the SAM method signature for the synthetic class
+    MethodSignature samMethod = new MethodSignature(
+        syntheticName, lambda.getSamMethodName(), lambda.getSamDescriptor(),
+        Opcodes.ACC_PUBLIC);
+
+    // Extract functional interface from the SAM descriptor return type
+    String functionalInterface = extractFunctionalInterface(lambda);
+
+    // Build synthetic ClassInfo
+    Set<String> interfaces = functionalInterface != null
+        ? Collections.singleton(functionalInterface) : Collections.emptySet();
+    ClassInfo syntheticClass = new ClassInfo(
+        syntheticName,
+        "java/lang/Object",
+        interfaces,
+        Collections.singleton(samMethod),
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL | Opcodes.ACC_SYNTHETIC,
+        loaderType,
+        false);
+
+    // Register in hierarchy
+    hierarchy.registerSyntheticClass(syntheticClass);
+    instantiatedTypes.add(syntheticName);
+
+    // Edge 1: caller -> synthetic.SAM (enclosing method invokes functional interface)
+    edges.add(new CallGraphResult.Edge(caller, samMethod));
+
+    // Edge 2: synthetic.SAM -> impl method (SAM delegates to lambda body)
+    MethodSignature implMethod = new MethodSignature(
+        lambda.getImplOwner(), lambda.getImplName(), lambda.getImplDescriptor());
+    edges.add(new CallGraphResult.Edge(samMethod, implMethod));
+
+    // Add impl method to worklist so its call sites are also analyzed
+    if (!reachable.contains(implMethod)) {
+      worklist.add(implMethod);
+    }
+  }
+
+  /**
+   * Generates a WALA-compatible synthetic lambda class name.
+   * Format: wala/lambda$owner_with_slashes_as_dollars$index
+   */
+  private String generateLambdaClassName(String ownerClass) {
+    int index = lambdaCounters.merge(ownerClass, 0, (old, v) -> old + 1);
+    String encodedOwner = ownerClass.replace('/', '$');
+    return LAMBDA_CLASS_PREFIX + encodedOwner + "$" + index;
+  }
+
+  /**
+   * Extracts the functional interface class name from the invokedynamic descriptor's return type.
+   * The return type of the indy descriptor is always the functional interface type.
+   *
+   * @return the functional interface internal name, or null if it cannot be determined
+   */
+  private String extractFunctionalInterface(LambdaCallSite lambda) {
+    String indyDesc = lambda.getIndyDescriptor();
+    if (indyDesc == null) {
+      return null;
+    }
+
+    // Return type starts after the closing ')' in the descriptor
+    int closeParenIndex = indyDesc.lastIndexOf(')');
+    if (closeParenIndex < 0 || closeParenIndex + 1 >= indyDesc.length()) {
+      return null;
+    }
+
+    String returnType = indyDesc.substring(closeParenIndex + 1);
+    // Object type format: Lpackage/ClassName;
+    if (returnType.startsWith("L") && returnType.endsWith(";")) {
+      return returnType.substring(1, returnType.length() - 1);
+    }
+
+    return null;
   }
 
   /**
@@ -331,6 +434,7 @@ public final class AsmCallGraphBuilder {
     private final String targetDescriptor;
     private List<CallSite> callSites = List.of();
     private Set<String> instantiatedTypes = Set.of();
+    private List<LambdaCallSite> lambdaCallSites = List.of();
 
     MethodAnalysisVisitor(String methodName, String descriptor) {
       super(Opcodes.ASM9);
@@ -345,13 +449,14 @@ public final class AsmCallGraphBuilder {
         CallSiteExtractor extractor = new CallSiteExtractor();
         callSites = extractor.getCallSites();
         instantiatedTypes = extractor.getInstantiatedTypes();
+        lambdaCallSites = extractor.getLambdaCallSites();
         return extractor;
       }
       return null;
     }
 
     MethodAnalysisResult getResult() {
-      return new MethodAnalysisResult(callSites, instantiatedTypes);
+      return new MethodAnalysisResult(callSites, instantiatedTypes, lambdaCallSites);
     }
   }
 }

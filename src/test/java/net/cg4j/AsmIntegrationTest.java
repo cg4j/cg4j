@@ -42,9 +42,11 @@ class AsmIntegrationTest extends BaseIntegrationTest {
     // No RT classes
     assertThat(TestUtils.hasRTClasses(outputFile)).isFalse();
 
-    // Only slf4j sources
+    // Only slf4j sources (and synthetic lambda classes derived from them)
     assertThat(TestUtils.getSourcePrefixes(outputFile))
-        .allMatch(prefix -> prefix.startsWith("org/slf4j") || prefix.equals("<boot"));
+        .allMatch(prefix -> prefix.startsWith("org/slf4j")
+            || prefix.equals("<boot")
+            || prefix.startsWith("wala/lambda$org$slf4j"));
   }
 
   /**
@@ -156,6 +158,41 @@ class AsmIntegrationTest extends BaseIntegrationTest {
       // Target should have method URI format
       assertThat(target).matches(".*\\..*:.*");
     }
+  }
+
+  /**
+   * Integration test: Verifies ASM engine produces synthetic lambda edges for OkHttp.
+   * Expects edges with wala/lambda$ prefix following the two-hop pattern.
+   */
+  @Test
+  void testAsmEngine_LambdaEdges_OkHttp() throws IOException {
+    outputFile = TestUtils.createTempOutputFile();
+
+    int exitCode = TestUtils.runMain(
+        okhttpJar.getPath(),
+        "-d", okhttpDeps.getPath(),
+        "-o", outputFile.getPath(),
+        "--engine=asm",
+        "--include-rt=false"
+    );
+
+    assertThat(exitCode).isEqualTo(0);
+
+    List<String[]> edges = TestUtils.parseCSV(outputFile);
+
+    // Hop 1: Some caller -> wala/lambda$...
+    boolean hasLambdaTarget = edges.stream()
+        .anyMatch(e -> e[1].startsWith("wala/lambda$"));
+    assertThat(hasLambdaTarget)
+        .as("Expected edges targeting synthetic lambda classes")
+        .isTrue();
+
+    // Hop 2: wala/lambda$... -> impl method
+    boolean hasLambdaSource = edges.stream()
+        .anyMatch(e -> e[0].startsWith("wala/lambda$"));
+    assertThat(hasLambdaSource)
+        .as("Expected edges from synthetic lambda classes to impl methods")
+        .isTrue();
   }
 
   /**

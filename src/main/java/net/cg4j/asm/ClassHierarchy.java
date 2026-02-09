@@ -232,6 +232,29 @@ public final class ClassHierarchy {
   }
 
   /**
+   * Registers a synthetic class (e.g., lambda) into the hierarchy.
+   * Updates reverse relations and invalidates the subtypes cache.
+   *
+   * @param syntheticClass the synthetic class to register
+   */
+  public void registerSyntheticClass(ClassInfo syntheticClass) {
+    classes.put(syntheticClass.getName(), syntheticClass);
+
+    // Update reverse relations
+    if (syntheticClass.getSuperName() != null) {
+      subclasses.computeIfAbsent(syntheticClass.getSuperName(), k -> new HashSet<>())
+          .add(syntheticClass.getName());
+    }
+    for (String iface : syntheticClass.getInterfaces()) {
+      implementors.computeIfAbsent(iface, k -> new HashSet<>())
+          .add(syntheticClass.getName());
+    }
+
+    // Invalidate cache — synthetic classes are leaf nodes but affect parent lookups
+    subtypesCache.clear();
+  }
+
+  /**
    * Returns the number of classes in the hierarchy.
    */
   public int size() {
