@@ -16,7 +16,7 @@ class IntegrationTest extends BaseIntegrationTest {
 
   /**
    * Integration test: Analyzes simple library (slf4j) without Java runtime classes.
-   * Expects 611±6 edges, no RT classes, and only org/slf4j/* source prefixes.
+   * Expects 746±8 edges, no RT classes, and only org/slf4j/* source prefixes.
    */
   @Test
   void testAppOnly_NoRT_Slf4j() throws IOException {
@@ -31,8 +31,8 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(exitCode).isEqualTo(0);
     assertThat(outputFile).exists();
 
-    // Edge count: 611 ±1% = 611±6
-    TestUtils.assertEdgeCount(outputFile, 611, 1.0);
+    // Edge count: 746 ±1% = 746±8
+    TestUtils.assertEdgeCount(outputFile, 746, 1.0);
 
     // No RT classes
     assertThat(TestUtils.hasRTClasses(outputFile)).isFalse();
@@ -44,7 +44,7 @@ class IntegrationTest extends BaseIntegrationTest {
 
   /**
    * Integration test: Analyzes simple library (slf4j) including Java runtime classes.
-   * Expects 2,221±22 edges, RT classes present, more edges than no-RT version.
+   * Expects 2,721±28 edges, RT classes present, more edges than no-RT version.
    */
   @Test
   void testAppOnly_WithRT_Slf4j() throws IOException {
@@ -59,19 +59,19 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(exitCode).isEqualTo(0);
     assertThat(outputFile).exists();
 
-    // Edge count: 2,221 ±1% = 2,221±22
-    TestUtils.assertEdgeCount(outputFile, 2221, 1.0);
+    // Edge count: 2,721 ±1% = 2,721±28
+    TestUtils.assertEdgeCount(outputFile, 2721, 1.0);
 
     // Has RT classes
     assertThat(TestUtils.hasRTClasses(outputFile)).isTrue();
 
     // More edges than no-RT version
-    assertThat(TestUtils.countEdges(outputFile)).isGreaterThan(611);
+    assertThat(TestUtils.countEdges(outputFile)).isGreaterThan(746);
   }
 
   /**
    * Integration test: Analyzes library with dependencies (OkHttp) without Java runtime.
-   * Expects 6,902±69 edges, no RT classes, sources from Application and Extension loaders.
+   * Expects 21,339±214 edges, no RT classes, sources from Application and Extension loaders.
    */
   @Test
   void testAppWithDeps_NoRT_OkHttp() throws IOException {
@@ -87,8 +87,8 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(exitCode).isEqualTo(0);
     assertThat(outputFile).exists();
 
-    // Edge count: 6,902 ±1% = 6,902±69
-    TestUtils.assertEdgeCount(outputFile, 6902, 1.0);
+    // Edge count: 21,339 ±1% = 21,339±214
+    TestUtils.assertEdgeCount(outputFile, 21339, 1.0);
 
     // No RT classes
     assertThat(TestUtils.hasRTClasses(outputFile)).isFalse();
@@ -102,7 +102,7 @@ class IntegrationTest extends BaseIntegrationTest {
 
   /**
    * Integration test: Analyzes library with dependencies (OkHttp) including Java runtime.
-   * Expects 13,319±133 edges, RT classes present, sources from all loaders.
+   * Expects 36,131±362 edges, RT classes present, sources from all loaders.
    */
   @Test
   void testAppWithDeps_WithRT_OkHttp() throws IOException {
@@ -118,8 +118,8 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(exitCode).isEqualTo(0);
     assertThat(outputFile).exists();
 
-    // Edge count: 13,319 ±1% = 13,319±133
-    TestUtils.assertEdgeCount(outputFile, 13319, 1.0);
+    // Edge count: 36,131 ±1% = 36,131±362
+    TestUtils.assertEdgeCount(outputFile, 36131, 1.0);
 
     // Has RT classes
     assertThat(TestUtils.hasRTClasses(outputFile)).isTrue();
@@ -161,7 +161,7 @@ class IntegrationTest extends BaseIntegrationTest {
 
   /**
    * Integration test: Tests analysis without specifying dependencies flag.
-   * Expects successful execution with 611±6 edges when no -d flag provided.
+   * Expects successful execution with 746±8 edges when no -d flag provided.
    */
   @Test
   void testNoDepsFlag_WorksWithoutDependencies() throws IOException {
@@ -175,7 +175,7 @@ class IntegrationTest extends BaseIntegrationTest {
     );
 
     assertThat(exitCode).isEqualTo(0);
-    TestUtils.assertEdgeCount(outputFile, 611, 1.0);
+    TestUtils.assertEdgeCount(outputFile, 746, 1.0);
   }
 
   /**
@@ -202,7 +202,7 @@ class IntegrationTest extends BaseIntegrationTest {
 
   /**
    * Integration test: Tests default value of --include-rt flag.
-   * Expects RT classes included by default (2,221±22 edges) when flag not specified.
+   * Expects RT classes included by default (2,721±28 edges) when flag not specified.
    */
   @Test
   void testDefaultIncludeRt_IsTrue() throws IOException {
@@ -217,7 +217,7 @@ class IntegrationTest extends BaseIntegrationTest {
     assertThat(exitCode).isEqualTo(0);
 
     // Should have same edge count as explicit --include-rt=true
-    TestUtils.assertEdgeCount(outputFile, 2221, 1.0);
+    TestUtils.assertEdgeCount(outputFile, 2721, 1.0);
     assertThat(TestUtils.hasRTClasses(outputFile)).isTrue();
   }
 
