@@ -8,6 +8,7 @@ import com.ibm.wala.ipa.callgraph.AnalysisOptions;
 import com.ibm.wala.ipa.callgraph.AnalysisScope;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.ibm.wala.ipa.callgraph.CallGraphBuilder;
 import com.ibm.wala.ipa.callgraph.Entrypoint;
 import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
 import com.ibm.wala.ipa.callgraph.impl.Util;
@@ -34,7 +35,7 @@ import java.util.stream.StreamSupport;
 /**
  * Builds call graphs using WALA with RTA-based analysis.
  */
-public class CallGraphBuilder {
+public class WalaCallGraphBuilder {
 
   /**
    * Builds an RTA call graph for the given JAR file.
@@ -59,7 +60,7 @@ public class CallGraphBuilder {
     
     // Build RTA call graph
     AnalysisCacheImpl cache = new AnalysisCacheImpl();
-    com.ibm.wala.ipa.callgraph.CallGraphBuilder<InstanceKey> cgBuilder =
+    CallGraphBuilder<InstanceKey> cgBuilder =
         Util.makeRTABuilder(options, cache, cha);
     
     return cgBuilder.makeCallGraph(options, null);

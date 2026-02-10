@@ -55,6 +55,10 @@ mvn clean test jacoco:report
    - Java standard library - alphabetically sorted
 2. No wildcard imports (`import java.util.*;`) - use explicit imports only
 3. No unused imports
+4. No fully qualified class names in code — always import the class and use its simple name
+   - Wrong: `com.ibm.wala.ipa.callgraph.CallGraphBuilder<InstanceKey> builder = ...`
+   - Right: `import com.ibm.wala.ipa.callgraph.CallGraphBuilder;` then `CallGraphBuilder<InstanceKey> builder = ...`
+   - If a name collision exists between project and library classes, rename the project class to avoid the conflict
 
 ### Formatting
 

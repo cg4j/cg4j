@@ -120,7 +120,7 @@ public class Main implements Callable<Integer> {
     Path exclusionFile = createExclusionFile();
     logger.info("Created exclusion file: {}", exclusionFile);
 
-    CallGraphBuilder builder = new CallGraphBuilder();
+    WalaCallGraphBuilder builder = new WalaCallGraphBuilder();
     CallGraph cg = builder.buildCallGraph(targetJar.getPath(), dependencies, exclusionFile.toFile());
     logger.info("Total nodes: {}", cg.getNumberOfNodes());
 
@@ -183,7 +183,7 @@ public class Main implements Callable<Integer> {
       writer.println("source_method,target_method");
       
       AtomicInteger edgeCounter = new AtomicInteger(0);
-      Stream<CallGraphBuilder.CallGraphEdge> edges = CallGraphBuilder.extractEdgesAsStream(cg, includeRt);
+      Stream<WalaCallGraphBuilder.CallGraphEdge> edges = WalaCallGraphBuilder.extractEdgesAsStream(cg, includeRt);
       edges.forEach(edge -> {
         writer.println(edge.source + "," + edge.target);
         edgeCounter.incrementAndGet();
