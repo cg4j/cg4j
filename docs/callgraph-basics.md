@@ -62,17 +62,32 @@ super.toString();       // Superclass method call
 this.privateMethod();   // Private method call
 ```
 
+### Interface Calls (invokeinterface)
+
+Interface calls invoke methods declared in interfaces. Similar to virtual calls, the actual implementation is resolved at runtime based on the object's type.
+
+```java
+List<String> list = new ArrayList<>();
+list.add("hello");  // Interface call - resolved to ArrayList.add()
+```
+
 ### Dynamic Calls (invokedynamic)
 
-Dynamic calls use the `invokedynamic` bytecode instruction, introduced for dynamically-typed JVM languages. Java uses it for lambda expressions and some optimizations (records, string concatenation).
+Dynamic calls use the `invokedynamic` bytecode instruction, introduced for dynamically-typed JVM languages. Java uses it for lambda expressions and method references. The cg4j ASM engine handles lambda metafactory calls by creating synthetic lambda classes.
 
 ```java
 list.forEach(x -> System.out.println(x));  // Lambda uses invokedynamic
+Function<String, Integer> f = String::length;  // Method reference uses invokedynamic
 ```
+
+**How cg4j handles lambdas:**
+- Detects `LambdaMetafactory.metafactory` bootstrap methods
+- Creates synthetic classes matching WALA's `wala/lambda$...` naming convention
+- Generates two-hop edges: caller → synthetic SAM method → lambda body
 
 ### Why This Matters for Call Graphs
 
-Static, special, and dynamic calls have a single target - easy to resolve. Virtual calls are the challenge: the target depends on the runtime type. This is why call graph algorithms like CHA and RTA exist - they approximate which implementations might be called at virtual call sites.
+Static and special calls have a single target - easy to resolve. Virtual and interface calls are the challenge: the target depends on the runtime type. This is why call graph algorithms like CHA and RTA exist - they approximate which implementations might be called at virtual call sites.
 
 ## Call Graph Construction Algorithms
 
@@ -201,9 +216,10 @@ cg4j provides two engines:
 
 ### ASM Engine
 
-- Uses **RTA** (Rapid Type Analysis)
+- Uses **RTA** (Rapid Type Analysis) with fixed-point iteration
 - Faster and more lightweight
-- Good for straightforward call graph construction
+- Handles lambda expressions and method references
+- Good for accurate, efficient call graph construction
 
 **Usage:**
 ```bash
@@ -220,13 +236,34 @@ cg4j uses a worklist-based approach for call graph construction:
 
 1. **Start with entry points** (all public methods in cg4j)
 
-2. **For each reachable method:**
+2. **Main worklist pass - for each reachable method:**
    - Scan method bytecode for call sites
    - Track instantiations (`new` expressions)
-   - Resolve virtual calls using RTA
+   - Resolve virtual/interface calls using RTA
+   - Process lambda `invokedynamic` sites (ASM engine)
    - Add discovered methods to worklist
 
-3. **Repeat** until no new methods are discovered
+3. **Fixed-point re-resolution (ASM engine only):**
+   - After the main worklist completes, re-resolve all virtual/interface call sites
+   - Recovers edges missed due to worklist ordering (e.g., lambda classes registered late)
+   - Iterates until no new edges are discovered (typically 1-2 passes)
+
+4. **Repeat** until convergence
+
+#### Why Fixed-Point Iteration?
+
+The RTA worklist is single-pass: when method A calls an interface method, only types instantiated *before* A is processed are found as targets. Types instantiated *after* (e.g., lambda classes created later in the worklist) are missed because A is never revisited.
+
+**Example:**
+```java
+// Method A processes Function1.invoke() call
+// Only finds lambda classes already registered
+
+// Method B later creates a new lambda
+// A never learns about B's lambda
+```
+
+**Solution:** After the main worklist, re-resolve all virtual/interface call sites against the complete set of instantiated types. This recovers edges to types that were registered late in the worklist. Converges quickly since types don't recursively create new types.
 
 ## How cg4j Builds Call Graphs
 
@@ -236,10 +273,14 @@ cg4j uses a worklist-based approach for call graph construction:
 4. **Run worklist algorithm**:
    - Process each reachable method
    - Extract call sites from bytecode
-   - Track instantiations
-   - Resolve virtual calls using RTA
+   - Track instantiations (`new` expressions)
+   - Process lambda `invokedynamic` sites (ASM engine)
+   - Resolve virtual/interface calls using RTA
    - Expand the call graph iteratively
-5. **Output CSV** with source → target edges
+5. **Fixed-point re-resolution** (ASM engine):
+   - Re-resolve all virtual/interface calls with complete type set
+   - Recover edges to late-registered types
+6. **Output CSV** with source → target edges
 
 ## Limitations
 
@@ -247,15 +288,19 @@ cg4j uses a worklist-based approach for call graph construction:
 
 ✅ Direct method calls
 ✅ Virtual method calls (using RTA)
+✅ Interface method calls
 ✅ Constructor calls
 ✅ Static method calls
+✅ Lambda expressions and method references
+✅ Static initializers (`<clinit>`)
 
 ### What cg4j May Miss
 
-❌ Reflection (`Method.invoke()`)
-❌ Dynamic proxy calls
-❌ Lambda expressions (depends on WALA support)
+❌ Reflection (`Method.invoke()`, `Constructor.newInstance()`)
+❌ Dynamic proxy calls (`Proxy.newProxyInstance()`)
+❌ Method handles (`MethodHandle.invoke()`)
 ❌ Native methods
+❌ Custom `invokedynamic` bootstraps (non-lambda)
 
 ## Key Terminology
 

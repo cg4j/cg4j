@@ -175,4 +175,73 @@ class ClassHierarchyTest {
     Set<MethodSignature> emptyTargets = hierarchy.resolveCallSiteRTA(virtualCall, Set.of());
     assertThat(emptyTargets).isEmpty();
   }
+
+  /**
+   * Unit test: Tests registering a synthetic lambda class into the hierarchy.
+   * Expects the class to appear in lookups, subclass maps, and implementor maps.
+   */
+  @Test
+  void testRegisterSyntheticClass() {
+    // Build hierarchy with an interface
+    ClassInfo objectClass = new ClassInfo("java/lang/Object", null, Collections.emptySet(),
+        Collections.emptySet(), Opcodes.ACC_PUBLIC, ClassLoaderType.PRIMORDIAL, false);
+
+    Set<MethodSignature> ifaceMethods = new HashSet<>();
+    ifaceMethods.add(new MethodSignature("com/example/MyInterface", "doIt", "()V",
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT));
+
+    ClassInfo ifaceClass = new ClassInfo("com/example/MyInterface", "java/lang/Object",
+        Collections.emptySet(), ifaceMethods,
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT,
+        ClassLoaderType.APPLICATION, false);
+
+    Map<String, ClassInfo> classes = new java.util.HashMap<>(Map.of(
+        "java/lang/Object", objectClass,
+        "com/example/MyInterface", ifaceClass
+    ));
+
+    ClassHierarchy hierarchy = new ClassHierarchy(classes);
+
+    // Verify interface has no implementors yet
+    assertThat(hierarchy.getDirectImplementors("com/example/MyInterface")).isEmpty();
+
+    // Register a synthetic lambda class implementing the interface
+    Set<MethodSignature> lambdaMethods = new HashSet<>();
+    lambdaMethods.add(new MethodSignature("wala/lambda$test$0", "doIt", "()V",
+        Opcodes.ACC_PUBLIC));
+
+    ClassInfo syntheticClass = new ClassInfo(
+        "wala/lambda$test$0",
+        "java/lang/Object",
+        Set.of("com/example/MyInterface"),
+        lambdaMethods,
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL | Opcodes.ACC_SYNTHETIC,
+        ClassLoaderType.APPLICATION,
+        false
+    );
+
+    hierarchy.registerSyntheticClass(syntheticClass);
+
+    // Verify the class is registered
+    assertThat(hierarchy.hasClass("wala/lambda$test$0")).isTrue();
+    assertThat(hierarchy.getClass("wala/lambda$test$0")).isEqualTo(syntheticClass);
+    assertThat(hierarchy.size()).isEqualTo(3);
+
+    // Verify subclass relation
+    assertThat(hierarchy.getDirectSubclasses("java/lang/Object"))
+        .contains("wala/lambda$test$0");
+
+    // Verify implementor relation
+    assertThat(hierarchy.getDirectImplementors("com/example/MyInterface"))
+        .contains("wala/lambda$test$0");
+
+    // Verify subtypes include the new synthetic class
+    Set<String> ifaceSubtypes = hierarchy.getAllSubtypes("com/example/MyInterface");
+    assertThat(ifaceSubtypes).contains("wala/lambda$test$0");
+
+    // Verify method lookup works on the synthetic class
+    MethodSignature method = hierarchy.lookupMethod("wala/lambda$test$0", "doIt", "()V");
+    assertThat(method).isNotNull();
+    assertThat(method.getOwner()).isEqualTo("wala/lambda$test$0");
+  }
 }
