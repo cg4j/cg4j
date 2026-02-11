@@ -34,6 +34,7 @@ public final class AsmCallGraphBuilder {
 
   private ClassHierarchy hierarchy;
   private Map<String, byte[]> classBytecode;
+  private JarScanner.PrimordialBytecodeLoader primordialLoader;
   private final Map<String, Integer> lambdaCounters = new HashMap<>();
 
   /**
@@ -98,7 +99,13 @@ public final class AsmCallGraphBuilder {
 
     // Step 4: Run worklist algorithm
     logger.info("Running worklist algorithm with RTA...");
-    WorklistResult result = runWorklist(entryPoints);
+    WorklistResult result;
+    try (JarScanner.PrimordialBytecodeLoader loader = JarScanner.createPrimordialLoader()) {
+      primordialLoader = loader;
+      result = runWorklist(entryPoints);
+    } finally {
+      primordialLoader = null;
+    }
 
     // Step 5: Filter edges if needed
     Set<CallGraphResult.Edge> edges = result.edges;
@@ -301,11 +308,18 @@ public final class AsmCallGraphBuilder {
 
   /**
    * Analyzes a method's bytecode to extract call sites and instantiated types.
+   * Lazily loads primordial (JDK) bytecode on demand if not already cached.
    */
   private MethodAnalysisResult analyzeMethod(MethodSignature method) {
     byte[] bytecode = classBytecode.get(method.getOwner());
+    if (bytecode == null && primordialLoader != null) {
+      // Lazy-load primordial bytecode from JDK runtime
+      bytecode = primordialLoader.loadBytecode(method.getOwner());
+      if (bytecode != null) {
+        classBytecode.put(method.getOwner(), bytecode);
+      }
+    }
     if (bytecode == null) {
-      // Class bytecode not available (e.g., JDK class)
       return new MethodAnalysisResult(List.of(), Set.of(), List.of());
     }
 

@@ -16,7 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
 
 /**
  * Scans JAR files and JRT filesystem to extract class information using ASM.
@@ -162,5 +164,113 @@ public final class JarScanner {
     ClassInfoVisitor visitor = new ClassInfoVisitor(loaderType);
     reader.accept(visitor, PARSE_OPTIONS);
     return visitor.getClassInfo();
+  }
+
+  /**
+   * Creates a loader for lazily loading primordial (JDK) class bytecode.
+   * The returned loader caches the JDK file handle (jrt:/ filesystem or rt.jar)
+   * for efficient repeated lookups. Caller must close the loader when done.
+   *
+   * @return a new PrimordialBytecodeLoader
+   */
+  public static PrimordialBytecodeLoader createPrimordialLoader() throws IOException {
+    File rtJar = JdkLocator.getRtJar();
+    if (rtJar != null) {
+      return new RtJarBytecodeLoader(rtJar);
+    }
+    return new JrtBytecodeLoader();
+  }
+
+  /**
+   * Loads primordial class bytecode on demand. Implementations cache the underlying
+   * JDK file handle for efficient repeated lookups.
+   */
+  public interface PrimordialBytecodeLoader extends AutoCloseable {
+
+    /**
+     * Loads bytecode for a single primordial class.
+     *
+     * @param className the internal class name (e.g., "java/lang/String")
+     * @return the raw class bytecode, or null if the class cannot be found
+     */
+    byte[] loadBytecode(String className);
+
+    @Override
+    void close() throws IOException;
+  }
+
+  /**
+   * Loads class bytecode from rt.jar (Java 8).
+   */
+  private static class RtJarBytecodeLoader implements PrimordialBytecodeLoader {
+    private final JarFile jar;
+
+    RtJarBytecodeLoader(File rtJar) throws IOException {
+      this.jar = new JarFile(rtJar);
+    }
+
+    @Override
+    public byte[] loadBytecode(String className) {
+      ZipEntry entry = jar.getEntry(className + ".class");
+      if (entry == null) {
+        return null;
+      }
+      try (InputStream is = jar.getInputStream(entry)) {
+        return is.readAllBytes();
+      } catch (IOException e) {
+        logger.trace("Failed to load bytecode for {} from rt.jar: {}", className, e.getMessage());
+        return null;
+      }
+    }
+
+    @Override
+    public void close() throws IOException {
+      jar.close();
+    }
+  }
+
+  /**
+   * Loads class bytecode from the jrt:/ filesystem (Java 9+).
+   */
+  private static class JrtBytecodeLoader implements PrimordialBytecodeLoader {
+    private final FileSystem jrtFs;
+    private final List<Path> modulePaths;
+
+    JrtBytecodeLoader() throws IOException {
+      this.jrtFs = JdkLocator.getJrtFileSystem();
+      if (jrtFs != null) {
+        Path modulesPath = JdkLocator.getJrtModulesPath(jrtFs);
+        try (Stream<Path> modules = Files.list(modulesPath)) {
+          this.modulePaths = modules.collect(Collectors.toList());
+        }
+      } else {
+        this.modulePaths = List.of();
+      }
+    }
+
+    @Override
+    public byte[] loadBytecode(String className) {
+      if (jrtFs == null) {
+        return null;
+      }
+      for (Path modulePath : modulePaths) {
+        Path classPath = modulePath.resolve(className + ".class");
+        if (Files.exists(classPath)) {
+          try {
+            return Files.readAllBytes(classPath);
+          } catch (IOException e) {
+            logger.trace("Failed to read {}: {}", classPath, e.getMessage());
+          }
+        }
+      }
+      return null;
+    }
+
+    @Override
+    public void close() throws IOException {
+      if (jrtFs != null) {
+        jrtFs.close();
+      }
+    }
   }
 }
