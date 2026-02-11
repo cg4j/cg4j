@@ -34,6 +34,7 @@ public final class AsmCallGraphBuilder {
 
   private ClassHierarchy hierarchy;
   private Map<String, byte[]> classBytecode;
+  private JarScanner.PrimordialBytecodeLoader primordialLoader;
   private final Map<String, Integer> lambdaCounters = new HashMap<>();
 
   /**
@@ -98,7 +99,13 @@ public final class AsmCallGraphBuilder {
 
     // Step 4: Run worklist algorithm
     logger.info("Running worklist algorithm with RTA...");
-    WorklistResult result = runWorklist(entryPoints);
+    WorklistResult result;
+    try (JarScanner.PrimordialBytecodeLoader loader = JarScanner.createPrimordialLoader()) {
+      primordialLoader = loader;
+      result = runWorklist(entryPoints);
+    } finally {
+      primordialLoader = null;
+    }
 
     // Step 5: Filter edges if needed
     Set<CallGraphResult.Edge> edges = result.edges;
@@ -135,7 +142,9 @@ public final class AsmCallGraphBuilder {
   }
 
   /**
-   * Finds all static initializer methods from APPLICATION and EXTENSION classes.
+   * Finds all static initializer methods from classes in the hierarchy.
+   * Includes Primordial classes (those that survived scope exclusions) so their
+   * static initializers are analyzed for instantiation sites and call edges.
    *
    * @return set of clinit method signatures
    */
@@ -143,9 +152,6 @@ public final class AsmCallGraphBuilder {
     Set<MethodSignature> clinits = new HashSet<>();
 
     for (ClassInfo classInfo : hierarchy.getAllClasses().values()) {
-      if (classInfo.getLoaderType() == ClassLoaderType.PRIMORDIAL) {
-        continue;
-      }
       if (classInfo.hasClinit()) {
         clinits.add(new MethodSignature(classInfo.getName(), "<clinit>", "()V"));
       }
@@ -301,11 +307,18 @@ public final class AsmCallGraphBuilder {
 
   /**
    * Analyzes a method's bytecode to extract call sites and instantiated types.
+   * Lazily loads primordial (JDK) bytecode on demand if not already cached.
    */
   private MethodAnalysisResult analyzeMethod(MethodSignature method) {
     byte[] bytecode = classBytecode.get(method.getOwner());
+    if (bytecode == null && primordialLoader != null) {
+      // Lazy-load primordial bytecode from JDK runtime
+      bytecode = primordialLoader.loadBytecode(method.getOwner());
+      if (bytecode != null) {
+        classBytecode.put(method.getOwner(), bytecode);
+      }
+    }
     if (bytecode == null) {
-      // Class bytecode not available (e.g., JDK class)
       return new MethodAnalysisResult(List.of(), Set.of(), List.of());
     }
 
