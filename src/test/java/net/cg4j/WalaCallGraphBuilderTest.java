@@ -15,13 +15,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class CallGraphBuilderTest extends BaseIntegrationTest {
+class WalaCallGraphBuilderTest extends BaseIntegrationTest {
 
-  private CallGraphBuilder builder;
+  private WalaCallGraphBuilder builder;
 
   @BeforeEach
   void setup() {
-    builder = new CallGraphBuilder();
+    builder = new WalaCallGraphBuilder();
   }
 
   /**
@@ -85,10 +85,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
         null
     );
 
-    Stream<CallGraphBuilder.CallGraphEdge> edges =
-        CallGraphBuilder.extractEdgesAsStream(cg, false);
+    Stream<WalaCallGraphBuilder.CallGraphEdge> edges =
+        WalaCallGraphBuilder.extractEdgesAsStream(cg, false);
 
-    CallGraphBuilder.CallGraphEdge edge = edges.findFirst()
+    WalaCallGraphBuilder.CallGraphEdge edge = edges.findFirst()
         .orElseThrow(() -> new AssertionError("Expected at least one edge"));
     
     assertThat(edge.source).isNotEmpty();
@@ -109,8 +109,8 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
         null
     );
 
-    Stream<CallGraphBuilder.CallGraphEdge> edges =
-        CallGraphBuilder.extractEdgesAsStream(cg, false);
+    Stream<WalaCallGraphBuilder.CallGraphEdge> edges =
+        WalaCallGraphBuilder.extractEdgesAsStream(cg, false);
 
     boolean hasRTEdge = edges.anyMatch(edge -> 
         edge.source.startsWith("java/") || edge.target.startsWith("java/")
@@ -131,8 +131,8 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
         null
     );
 
-    Stream<CallGraphBuilder.CallGraphEdge> edges =
-        CallGraphBuilder.extractEdgesAsStream(cg, true);
+    Stream<WalaCallGraphBuilder.CallGraphEdge> edges =
+        WalaCallGraphBuilder.extractEdgesAsStream(cg, true);
 
     boolean foundRTEdge = edges.anyMatch(edge -> 
         edge.source.startsWith("java/") || edge.target.startsWith("java/")
@@ -153,10 +153,10 @@ class CallGraphBuilderTest extends BaseIntegrationTest {
         null
     );
 
-    Stream<CallGraphBuilder.CallGraphEdge> edges =
-        CallGraphBuilder.extractEdgesAsStream(cg, false);
+    Stream<WalaCallGraphBuilder.CallGraphEdge> edges =
+        WalaCallGraphBuilder.extractEdgesAsStream(cg, false);
 
-    CallGraphBuilder.CallGraphEdge edge = edges.findFirst()
+    WalaCallGraphBuilder.CallGraphEdge edge = edges.findFirst()
         .orElseThrow(() -> new AssertionError("Expected at least one edge"));
 
     // Verify format: contains package, class, method, and descriptor
