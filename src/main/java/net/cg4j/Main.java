@@ -72,6 +72,8 @@ public class Main implements Callable<Integer> {
 
   @Override
   public Integer call() throws Exception {
+    Banner.print();
+
     // Validate target JAR exists
     if (!targetJar.exists()) {
       logger.error("Target JAR file not found: {}", targetJar);
