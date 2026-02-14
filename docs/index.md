@@ -8,4 +8,11 @@ Call Graph Generation for Java
 
 ---
 
-CG4j is a command-line tool to build call graphs for Java programs.
+CG4j is a lightweight, fast command-line tool to build call graphs for Java programs.
+
+## Features
+
+- **Fast and lightweight** - A small CG generator built with the ASM library
+- **Transitive analysis** - Analyzes programs and their dependencies
+- **Simple output** - CSV format containing edges found
+- **User-friendly CLI** - An easy-to-use tool 
