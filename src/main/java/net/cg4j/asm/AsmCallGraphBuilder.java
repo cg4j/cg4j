@@ -142,9 +142,9 @@ public final class AsmCallGraphBuilder {
   }
 
   /**
-   * Finds all static initializer methods from classes in the hierarchy.
-   * Includes Primordial classes (those that survived scope exclusions) so their
-   * static initializers are analyzed for instantiation sites and call edges.
+   * Finds static initializer methods from Application and Extension classes.
+   * Primordial classes are excluded to avoid seeding deep JDK-internal analysis
+   * that inflates the instantiated types set with unreachable types.
    *
    * @return set of clinit method signatures
    */
@@ -152,7 +152,8 @@ public final class AsmCallGraphBuilder {
     Set<MethodSignature> clinits = new HashSet<>();
 
     for (ClassInfo classInfo : hierarchy.getAllClasses().values()) {
-      if (classInfo.hasClinit()) {
+      if (classInfo.hasClinit()
+          && classInfo.getLoaderType() != ClassLoaderType.PRIMORDIAL) {
         clinits.add(new MethodSignature(classInfo.getName(), "<clinit>", "()V"));
       }
     }
