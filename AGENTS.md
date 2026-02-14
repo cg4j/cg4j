@@ -215,6 +215,11 @@ python benchmark/compare_cg.py --count --diff cg1.csv cg2.csv
 
 ## Git
 
+### Before You Start
+
+- **Always pull latest changes**: Run `git pull` before starting any task to ensure you're working with the most recent code
+- Verify you're on the correct branch before making changes
+
 ### Workflow
 
 ```bash
