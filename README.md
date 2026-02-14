@@ -20,7 +20,7 @@ A command-line tool to build call graphs for Java programs.
 
 ## Features
 
-- Builds 0-CFA call graphs using Rapid Type Analysis (RTA)
+- Builds call graphs using Rapid Type Analysis (RTA)
 - Analyzes JAR files and their dependencies
 - Generates all public methods as entry points
 - Outputs call graph to CSV file
@@ -179,5 +179,5 @@ Test data: `src/test/resources/test-jars/`
 
 ## Documentation
 
-- **New to call graphs?** Read [Call Graph Basics](docs/CALLGRAPH-BASICS.md) to learn about CHA, 0-CFA, and how call graphs are built.
+- **New to call graphs?** Read [Call Graph Basics](docs/CALLGRAPH-BASICS.md) to learn about CHA, RTA, and how call graphs are built.
 - **System architecture:** See [Architecture](docs/ARCHITECTURE.md) for the internal design and data flow.

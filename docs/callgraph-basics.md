@@ -210,7 +210,7 @@ cg4j provides two engines:
 
 ### WALA Engine
 
-- Uses **0-CFA** (Zero Context-Flow-Insensitive Analysis)
+- Uses **RTA** (Rapid Type Analysis)
 - More mature and feature-rich
 - Handles complex Java features
 
@@ -226,7 +226,7 @@ cg4j provides two engines:
 # ASM engine (uses RTA)
 java -jar cg4j.jar -j app.jar --engine=asm
 
-# WALA engine (uses 0-CFA)
+# WALA engine (uses RTA)
 java -jar cg4j.jar -j app.jar --engine=wala
 ```
 
@@ -335,13 +335,15 @@ The RTA worklist is single-pass: when method A calls an interface method, only t
 
 ## Quick Reference
 
-| What You Want | WALA (0-CFA) | ASM (RTA) |
-|---------------|--------------|-----------|
-| Fast analysis | ✅ Fast | ✅ Very fast |
-| More precision | ⚠️ Moderate | ✅ Higher |
+| Feature | WALA (RTA) | ASM (RTA) |
+|---------|------------|-----------|
+| Speed | ✅ Fast | ✅ Very fast |
+| Call graph coverage | ⚠️ Moderate | ✅ Higher |
+| Lambda support | ✅ Yes | ✅ Yes |
 | Handle reflection | ❌ Limited | ❌ No |
 | Sound results | ✅ Yes | ✅ Yes |
 | Large programs | ✅ Yes | ✅ Yes |
-| Smaller call graphs | ⚠️ Moderate | ✅ Smaller |
 
-**Recommendation**: Start with ASM for faster analysis and better precision. Use WALA for complex Java features.
+**Note**: Benchmarks show ASM typically finds more edges and nodes than WALA, with significant improvement in lambda and method reference coverage.
+
+**Recommendation**: Use ASM for most analysis tasks (faster, better coverage). Use WALA if you need specific WALA framework features.
