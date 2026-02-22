@@ -4,10 +4,8 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import net.cg4j.asm.AsmCallGraphBuilder;
 import net.cg4j.asm.CallGraphResult;
 import net.cg4j.asm.ScopeExclusions;
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.config.Configurator;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -36,7 +34,7 @@ import java.util.stream.Stream;
          description = "Builds call graphs from Java JAR files using WALA or ASM")
 public class Main implements Callable<Integer> {
 
-  private static final Logger logger = LogManager.getLogger(Main.class);
+  private Logger logger;
 
   @Option(names = {"-j", "--app-jar"},
           required = true,
@@ -72,13 +70,17 @@ public class Main implements Callable<Integer> {
   private boolean quiet;
 
   public static void main(String[] args) {
+    if (hasQuietFlag(args)) {
+      System.setProperty("log4j2.configurationFile", "classpath:log4j2-quiet.xml");
+    }
+
     int exitCode = new CommandLine(new Main()).execute(args);
     System.exit(exitCode);
   }
 
   @Override
   public Integer call() throws Exception {
-    applyQuietMode();
+    logger = LogManager.getLogger(Main.class);
     Banner.print();
 
     // Validate target JAR exists
@@ -162,16 +164,17 @@ public class Main implements Callable<Integer> {
     return writeAsmCallGraphToCSV(result, outputCsv);
   }
 
-  /**
-   * Applies quiet mode by reducing logger output to errors.
-   */
-  private void applyQuietMode() {
-    if (!quiet) {
-      return;
-    }
 
-    Configurator.setLevel("net.cg4j", Level.ERROR);
-    Configurator.setLevel("com.ibm", Level.ERROR);
+  /**
+   * Detects quiet flag before command execution.
+   */
+  private static boolean hasQuietFlag(String[] args) {
+    for (String arg : args) {
+      if ("-q".equals(arg) || "--quiet".equals(arg)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
