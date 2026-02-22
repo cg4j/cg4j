@@ -4,8 +4,10 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import net.cg4j.asm.AsmCallGraphBuilder;
 import net.cg4j.asm.CallGraphResult;
 import net.cg4j.asm.ScopeExclusions;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -65,6 +67,10 @@ public class Main implements Callable<Integer> {
               + "(default: built-in WALA-compatible exclusions)")
   private File exclusionsFile;
 
+  @Option(names = {"-q", "--quiet"},
+          description = "Suppress info/progress logs (errors only)")
+  private boolean quiet;
+
   public static void main(String[] args) {
     int exitCode = new CommandLine(new Main()).execute(args);
     System.exit(exitCode);
@@ -72,6 +78,7 @@ public class Main implements Callable<Integer> {
 
   @Override
   public Integer call() throws Exception {
+    applyQuietMode();
     Banner.print();
 
     // Validate target JAR exists
@@ -153,6 +160,18 @@ public class Main implements Callable<Integer> {
     // Write call graph to CSV
     logger.info("Writing call graph to: {}", outputCsv);
     return writeAsmCallGraphToCSV(result, outputCsv);
+  }
+
+  /**
+   * Applies quiet mode by reducing logger output to errors.
+   */
+  private void applyQuietMode() {
+    if (!quiet) {
+      return;
+    }
+
+    Configurator.setLevel("net.cg4j", Level.ERROR);
+    Configurator.setLevel("com.ibm", Level.ERROR);
   }
 
   /**
