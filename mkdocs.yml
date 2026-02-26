@@ -1,5 +1,7 @@
 site_name: CG4j
 site_url: https://cg4j.net
+repo_url: https://github.com/cg4j/cg4j
+repo_name: cg4j/cg4j
 
 nav:
   - Home: index.md
@@ -18,6 +20,12 @@ theme:
     - navigation.tabs.sticky
 
 copyright: Copyright &copy; 2026
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/cg4j/cg4j
+      name: CG4j on GitHub
 
 extra_css:
   - css/extra.css
