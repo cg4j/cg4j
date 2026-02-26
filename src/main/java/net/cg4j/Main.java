@@ -4,12 +4,15 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import net.cg4j.asm.AsmCallGraphBuilder;
 import net.cg4j.asm.CallGraphResult;
 import net.cg4j.asm.ScopeExclusions;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.impl.Log4jContextFactory;
+import org.apache.logging.log4j.core.selector.ContextSelector;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -65,6 +68,11 @@ public class Main implements Callable<Integer> {
               + "(default: built-in WALA-compatible exclusions)")
   private File exclusionsFile;
 
+  /** Suppresses info/progress logs, showing only errors. */
+  @Option(names = {"-q", "--quiet"},
+          description = "Suppress info/progress logs (errors only)")
+  private boolean quiet;
+
   public static void main(String[] args) {
     int exitCode = new CommandLine(new Main()).execute(args);
     System.exit(exitCode);
@@ -72,6 +80,9 @@ public class Main implements Callable<Integer> {
 
   @Override
   public Integer call() throws Exception {
+    if (quiet) {
+      setQuietLogging();
+    }
     Banner.print();
 
     // Validate target JAR exists
@@ -153,6 +164,18 @@ public class Main implements Callable<Integer> {
     // Write call graph to CSV
     logger.info("Writing call graph to: {}", outputCsv);
     return writeAsmCallGraphToCSV(result, outputCsv);
+  }
+
+  /**
+   * Sets all Log4j2 logger contexts to ERROR level for quiet mode.
+   */
+  private static void setQuietLogging() {
+    ContextSelector selector =
+        ((Log4jContextFactory) LogManager.getFactory()).getSelector();
+    for (LoggerContext context : selector.getLoggerContexts()) {
+      context.getConfiguration().getRootLogger().setLevel(Level.ERROR);
+      context.updateLoggers();
+    }
   }
 
   /**
