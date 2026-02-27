@@ -26,6 +26,9 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/cg4j/cg4j
       name: CG4j on GitHub
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/cg4j_net
+      name: CG4j on X
 
 extra_css:
   - css/extra.css
