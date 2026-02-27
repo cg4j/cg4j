@@ -17,6 +17,7 @@ A command-line tool to build call graphs for Java programs.
 - [Output Format](#output-format)
 - [Testing](#testing)
 - [Documentation](#documentation)
+- [License](#license)
 
 ## Features
 
@@ -181,3 +182,9 @@ Test data: `src/test/resources/test-jars/`
 
 - **New to call graphs?** Read [Call Graph Basics](docs/CALLGRAPH-BASICS.md) to learn about CHA, RTA, and how call graphs are built.
 - **System architecture:** See [Architecture](docs/ARCHITECTURE.md) for the internal design and data flow.
+
+## License
+
+Licensed under the [GNU Affero General Public License v3.0](LICENSE).
+
+Copyright (C) 2026 CG4j Team
