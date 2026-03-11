@@ -39,6 +39,22 @@ class CallSiteExtractorTest {
   }
 
   /**
+   * Unit test: Tests CallSiteExtractor tracking of static field accesses.
+   * Expects GETSTATIC and PUTSTATIC owners to be recorded once.
+   */
+  @Test
+  void testTracksStaticFieldOwners() {
+    CallSiteExtractor extractor = new CallSiteExtractor();
+
+    extractor.visitFieldInsn(Opcodes.GETSTATIC, "com/example/Config", "VALUE", "I");
+    extractor.visitFieldInsn(Opcodes.PUTSTATIC, "com/example/Holder", "CACHE", "Ljava/lang/Object;");
+    extractor.visitFieldInsn(Opcodes.GETFIELD, "com/example/Instance", "field", "I");
+
+    assertThat(extractor.getStaticFieldOwners())
+        .containsExactlyInAnyOrder("com/example/Config", "com/example/Holder");
+  }
+
+  /**
    * Unit test: Tests extraction of LambdaMetafactory INVOKEDYNAMIC instructions.
    * Expects lambda call sites to be captured with correct SAM and impl info.
    */

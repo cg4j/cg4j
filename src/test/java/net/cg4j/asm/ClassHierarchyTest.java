@@ -244,4 +244,39 @@ class ClassHierarchyTest {
     assertThat(method).isNotNull();
     assertThat(method.getOwner()).isEqualTo("wala/lambda$test$0");
   }
+
+  /**
+   * Unit test: Tests default interface dispatch resolution for concrete implementors.
+   * Expects the interface default method to be selected when the class does not override it.
+   */
+  @Test
+  void testResolveVirtualTarget_UsesDefaultInterfaceMethod() {
+    ClassInfo objectClass = new ClassInfo("java/lang/Object", null, Collections.emptySet(),
+        Collections.emptySet(), Opcodes.ACC_PUBLIC, ClassLoaderType.PRIMORDIAL, false);
+
+    Set<MethodSignature> ifaceMethods = new HashSet<>();
+    ifaceMethods.add(new MethodSignature("com/example/MyInterface", "doIt", "()V",
+        Opcodes.ACC_PUBLIC));
+
+    ClassInfo ifaceClass = new ClassInfo("com/example/MyInterface", "java/lang/Object",
+        Collections.emptySet(), ifaceMethods,
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT,
+        ClassLoaderType.APPLICATION, false);
+
+    ClassInfo implClass = new ClassInfo("com/example/MyImpl", "java/lang/Object",
+        Set.of("com/example/MyInterface"), Collections.emptySet(),
+        Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION, false);
+
+    ClassHierarchy hierarchy = new ClassHierarchy(new java.util.HashMap<>(Map.of(
+        "java/lang/Object", objectClass,
+        "com/example/MyInterface", ifaceClass,
+        "com/example/MyImpl", implClass
+    )));
+
+    MethodSignature target = hierarchy.resolveVirtualTarget("com/example/MyImpl", "doIt", "()V");
+
+    assertThat(target).isNotNull();
+    assertThat(target.getOwner()).isEqualTo("com/example/MyInterface");
+    assertThat(hierarchy.isAssignableTo("com/example/MyImpl", "com/example/MyInterface")).isTrue();
+  }
 }

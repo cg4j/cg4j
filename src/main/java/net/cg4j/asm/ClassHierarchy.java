@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -153,6 +154,72 @@ public final class ClassHierarchy {
   }
 
   /**
+   * Returns all interfaces implemented by a class or interface, transitively.
+   */
+  public Set<String> getAllImplementedInterfaces(String className) {
+    ClassInfo info = classes.get(className);
+    if (info == null) {
+      return Collections.emptySet();
+    }
+
+    Set<String> interfaces = new LinkedHashSet<>();
+    collectInterfaces(info, interfaces);
+    return interfaces;
+  }
+
+  /**
+   * Returns true if {@code concreteType} is assignable to {@code declaredType}.
+   */
+  public boolean isAssignableTo(String concreteType, String declaredType) {
+    if (concreteType.equals(declaredType)) {
+      return true;
+    }
+
+    ClassInfo concreteInfo = classes.get(concreteType);
+    if (concreteInfo == null) {
+      return false;
+    }
+
+    String current = concreteType;
+    while (current != null) {
+      if (current.equals(declaredType)) {
+        return true;
+      }
+      ClassInfo currentInfo = classes.get(current);
+      if (currentInfo == null) {
+        break;
+      }
+      current = currentInfo.getSuperName();
+    }
+
+    return getAllImplementedInterfaces(concreteType).contains(declaredType);
+  }
+
+  /**
+   * Resolves the concrete target of a virtual/interface dispatch for a receiver type.
+   */
+  public MethodSignature resolveVirtualTarget(String concreteType, String methodName,
+                                              String descriptor) {
+    String current = concreteType;
+
+    while (current != null) {
+      ClassInfo info = classes.get(current);
+      if (info == null) {
+        return null;
+      }
+
+      MethodSignature method = info.getMethod(methodName, descriptor);
+      if (method != null && !method.isAbstract()) {
+        return method;
+      }
+
+      current = info.getSuperName();
+    }
+
+    return lookupDefaultInterfaceMethod(concreteType, methodName, descriptor, new HashSet<>());
+  }
+
+  /**
    * Resolves a virtual call using RTA (Rapid Type Analysis).
    * Only considers types that have been instantiated.
    *
@@ -184,8 +251,7 @@ public final class ClassHierarchy {
         continue;
       }
 
-      // Look up the method (may be inherited)
-      MethodSignature method = lookupMethod(subtype, methodName, descriptor);
+      MethodSignature method = resolveVirtualTarget(subtype, methodName, descriptor);
       if (method != null) {
         targets.add(method);
       }
@@ -259,5 +325,85 @@ public final class ClassHierarchy {
    */
   public int size() {
     return classes.size();
+  }
+
+  /**
+   * Collects transitive interfaces for a class.
+   */
+  private void collectInterfaces(ClassInfo info, Set<String> result) {
+    for (String iface : info.getInterfaces()) {
+      if (result.add(iface)) {
+        ClassInfo ifaceInfo = classes.get(iface);
+        if (ifaceInfo != null) {
+          collectInterfaces(ifaceInfo, result);
+        }
+      }
+    }
+
+    String superName = info.getSuperName();
+    if (superName != null) {
+      ClassInfo superInfo = classes.get(superName);
+      if (superInfo != null) {
+        collectInterfaces(superInfo, result);
+      }
+    }
+  }
+
+  /**
+   * Looks for a non-abstract default method on implemented interfaces.
+   */
+  private MethodSignature lookupDefaultInterfaceMethod(String className, String methodName,
+                                                       String descriptor,
+                                                       Set<String> visitedInterfaces) {
+    ClassInfo info = classes.get(className);
+    if (info == null) {
+      return null;
+    }
+
+    for (String iface : info.getInterfaces()) {
+      MethodSignature method =
+          lookupInterfaceMethod(iface, methodName, descriptor, visitedInterfaces);
+      if (method != null) {
+        return method;
+      }
+    }
+
+    String superName = info.getSuperName();
+    if (superName != null) {
+      return lookupDefaultInterfaceMethod(superName, methodName, descriptor, visitedInterfaces);
+    }
+
+    return null;
+  }
+
+  /**
+   * Looks for a concrete method declaration on an interface hierarchy.
+   */
+  private MethodSignature lookupInterfaceMethod(String interfaceName, String methodName,
+                                                String descriptor,
+                                                Set<String> visitedInterfaces) {
+    if (!visitedInterfaces.add(interfaceName)) {
+      return null;
+    }
+
+    ClassInfo info = classes.get(interfaceName);
+    if (info == null) {
+      return null;
+    }
+
+    MethodSignature method = info.getMethod(methodName, descriptor);
+    if (method != null && !method.isAbstract()) {
+      return method;
+    }
+
+    for (String parentInterface : info.getInterfaces()) {
+      MethodSignature inherited =
+          lookupInterfaceMethod(parentInterface, methodName, descriptor, visitedInterfaces);
+      if (inherited != null) {
+        return inherited;
+      }
+    }
+
+    return null;
   }
 }

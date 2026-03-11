@@ -20,6 +20,7 @@ public final class CallSiteExtractor extends MethodVisitor {
   private final List<CallSite> callSites = new ArrayList<>();
   private final List<LambdaCallSite> lambdaCallSites = new ArrayList<>();
   private final Set<String> instantiatedTypes = new HashSet<>();
+  private final Set<String> staticFieldOwners = new HashSet<>();
 
   /**
    * Creates a call site extractor.
@@ -75,6 +76,13 @@ public final class CallSiteExtractor extends MethodVisitor {
     }
   }
 
+  @Override
+  public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+    if (opcode == Opcodes.GETSTATIC || opcode == Opcodes.PUTSTATIC) {
+      staticFieldOwners.add(owner);
+    }
+  }
+
   /**
    * Returns the extracted call sites.
    */
@@ -94,6 +102,13 @@ public final class CallSiteExtractor extends MethodVisitor {
    */
   public Set<String> getInstantiatedTypes() {
     return instantiatedTypes;
+  }
+
+  /**
+   * Returns the owners of classes whose static fields are accessed.
+   */
+  public Set<String> getStaticFieldOwners() {
+    return staticFieldOwners;
   }
 
   /**
