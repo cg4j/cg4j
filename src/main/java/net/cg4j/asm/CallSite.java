@@ -12,6 +12,7 @@ public final class CallSite {
   private final String name;
   private final String descriptor;
   private final boolean isInterface;
+  private final String receiverTypeHint;
 
   /**
    * Creates a call site.
@@ -23,11 +24,27 @@ public final class CallSite {
    * @param isInterface true if the owner is an interface
    */
   public CallSite(int opcode, String owner, String name, String descriptor, boolean isInterface) {
+    this(opcode, owner, name, descriptor, isInterface, null);
+  }
+
+  /**
+   * Creates a call site with an optional receiver type hint inferred from local bytecode flow.
+   *
+   * @param opcode the invoke opcode (INVOKEVIRTUAL, INVOKEINTERFACE, etc.)
+   * @param owner target class in internal format
+   * @param name target method name
+   * @param descriptor target method descriptor
+   * @param isInterface true if the owner is an interface
+   * @param receiverTypeHint more precise receiver type when available, otherwise null
+   */
+  public CallSite(int opcode, String owner, String name, String descriptor, boolean isInterface,
+                  String receiverTypeHint) {
     this.opcode = opcode;
     this.owner = owner;
     this.name = name;
     this.descriptor = descriptor;
     this.isInterface = isInterface;
+    this.receiverTypeHint = receiverTypeHint;
   }
 
   public int getOpcode() {
@@ -48,6 +65,13 @@ public final class CallSite {
 
   public boolean isInterface() {
     return isInterface;
+  }
+
+  /**
+   * Returns a more precise receiver type inferred for this call site, if available.
+   */
+  public String getReceiverTypeHint() {
+    return receiverTypeHint;
   }
 
   /**
@@ -88,6 +112,7 @@ public final class CallSite {
       case Opcodes.INVOKESTATIC: opcodeStr = "INVOKESTATIC"; break;
       default: opcodeStr = "INVOKE_" + opcode; break;
     }
-    return opcodeStr + " " + owner + "." + name + descriptor;
+    String receiverHintSuffix = receiverTypeHint == null ? "" : " [receiver=" + receiverTypeHint + "]";
+    return opcodeStr + " " + owner + "." + name + descriptor + receiverHintSuffix;
   }
 }

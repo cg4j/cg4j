@@ -53,14 +53,28 @@ class CallSiteTest {
   }
 
   /**
+   * Unit test: Tests storing an inferred receiver type hint on a call site.
+   * Expects the hint to be preserved and exposed via the getter.
+   */
+  @Test
+  void testReceiverTypeHint() {
+    CallSite callSite = new CallSite(Opcodes.INVOKEVIRTUAL, "java/lang/Object",
+        "toString", "()Ljava/lang/String;", false, "java/lang/String");
+
+    assertThat(callSite.getReceiverTypeHint()).isEqualTo("java/lang/String");
+  }
+
+  /**
    * Unit test: Tests CallSite toString includes opcode name.
    * Expects string representation to contain opcode and method info.
    */
   @Test
   void testToString() {
-    CallSite callSite = new CallSite(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
+    CallSite callSite = new CallSite(Opcodes.INVOKEVIRTUAL, "java/lang/String",
+        "length", "()I", false, "java/lang/String");
     assertThat(callSite.toString()).contains("INVOKEVIRTUAL");
     assertThat(callSite.toString()).contains("java/lang/String");
     assertThat(callSite.toString()).contains("length");
+    assertThat(callSite.toString()).contains("receiver=java/lang/String");
   }
 }

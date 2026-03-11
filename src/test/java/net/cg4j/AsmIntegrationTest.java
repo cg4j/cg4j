@@ -242,6 +242,37 @@ class AsmIntegrationTest extends BaseIntegrationTest {
   }
 
   /**
+   * Integration test: Verifies ASM seeds WALA-style fake-root allocations for OkHttp with RT.
+   * Expects boot edges to package-private public methods and default constructors allocated from
+   * entrypoint receivers/parameters.
+   */
+  @Test
+  void testAsmEngine_WithRt_SeedsWalaStyleBootEdges_OkHttp() throws IOException {
+    outputFile = TestUtils.createTempOutputFile();
+
+    int exitCode = TestUtils.runMain(
+        okhttpJar.getPath(),
+        "-d", okhttpDeps.getPath(),
+        "-o", outputFile.getPath(),
+        "--engine=asm",
+        "--include-rt=true"
+    );
+
+    assertThat(exitCode).isEqualTo(0);
+
+    List<String[]> edges = TestUtils.parseCSV(outputFile);
+
+    assertThat(edges)
+        .anyMatch(edge -> edge[0].equals("<boot>")
+            && edge[1].equals("okhttp3/EventListener$AggregateEventListener.callEnd:"
+                + "(Lokhttp3/Call;)V"))
+        .anyMatch(edge -> edge[0].equals("<boot>")
+            && edge[1].equals("okhttp3/Cache$Companion.<init>:()V"))
+        .anyMatch(edge -> edge[0].equals("<boot>")
+            && edge[1].equals("java/lang/Object.<init>:()V"));
+  }
+
+  /**
    * Integration test: Tests error handling for invalid engine option.
    * Expects exit code 1 (error) when invalid engine is specified.
    */
