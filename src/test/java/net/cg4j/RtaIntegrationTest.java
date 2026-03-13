@@ -128,11 +128,11 @@ class RtaIntegrationTest extends BaseIntegrationTest {
   }
 
   /**
-   * Integration test: Verifies fake-root edges are preserved for non-RT targets when RT is excluded.
-   * Expects {@code <boot>} source edges to remain for application/extension reachability.
+   * Integration test: Verifies that RTA produces clinit edges from boot.
+   * Expects {@code <boot> -> <clinit>} edges to exist in the output.
    */
   @Test
-  void testRtaEngine_KeepsBootEdgesWhenRtExcluded() throws IOException {
+  void testRtaEngine_ProducesClinitEdges() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
 
     int exitCode = TestUtils.runMain(
@@ -146,9 +146,37 @@ class RtaIntegrationTest extends BaseIntegrationTest {
     assertThat(exitCode).isEqualTo(0);
 
     List<String[]> edges = TestUtils.parseCSV(outputFile);
-    assertThat(edges)
-        .filteredOn(e -> e[0].equals("<boot>"))
-        .isNotEmpty()
-        .allMatch(e -> !e[1].startsWith("java/"));
+    boolean hasClinitEdge = edges.stream()
+        .anyMatch(e -> e[0].equals("<boot>") && e[1].contains("<clinit>"));
+    assertThat(hasClinitEdge)
+        .as("Expected <boot> -> <clinit> edges in output")
+        .isTrue();
+  }
+
+  /**
+   * Integration test: Verifies clinit edges are only for non-Primordial classes.
+   * Expects no {@code <boot> -> java/*.<clinit>} edges when RT is excluded.
+   */
+  @Test
+  void testRtaEngine_ClinitEdgesAreNonPrimordial() throws IOException {
+    outputFile = TestUtils.createTempOutputFile();
+
+    int exitCode = TestUtils.runMain(
+        slf4jJar.getPath(),
+        "-o", outputFile.getPath(),
+        "--engine=asm",
+        "--include-rt=false"
+    );
+
+    assertThat(exitCode).isEqualTo(0);
+
+    List<String[]> edges = TestUtils.parseCSV(outputFile);
+    boolean hasPrimordialClinit = edges.stream()
+        .anyMatch(e -> e[0].equals("<boot>")
+            && e[1].contains("<clinit>")
+            && e[1].startsWith("java/"));
+    assertThat(hasPrimordialClinit)
+        .as("Expected no <boot> -> java/*.<clinit> edges when RT excluded")
+        .isFalse();
   }
 }

@@ -209,36 +209,6 @@ class CallSiteExtractorTest {
   }
 
   /**
-   * Unit test: Tests receiver type inference for virtual calls on typed parameters.
-   * Expects Object.toString calls on a TimeUnit parameter to retain the parameter type hint.
-   */
-  @Test
-  void testInfersReceiverTypeHintFromMethodParameter() {
-    ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-    cw.visit(Opcodes.V11, Opcodes.ACC_PUBLIC, "com/example/TestClass", null,
-        "java/lang/Object", null);
-
-    MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
-        "testMethod", "(Ljava/util/concurrent/TimeUnit;)V", null, null);
-    mv.visitCode();
-    mv.visitVarInsn(Opcodes.ALOAD, 0);
-    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Object",
-        "toString", "()Ljava/lang/String;", false);
-    mv.visitInsn(Opcodes.POP);
-    mv.visitInsn(Opcodes.RETURN);
-    mv.visitMaxs(1, 1);
-    mv.visitEnd();
-    cw.visitEnd();
-
-    CallSiteExtractor extractor =
-        visitMethod(cw.toByteArray(), "testMethod", "(Ljava/util/concurrent/TimeUnit;)V");
-
-    assertThat(extractor.getCallSites()).hasSize(1);
-    assertThat(extractor.getCallSites().get(0).getReceiverTypeHint())
-        .isEqualTo("java/util/concurrent/TimeUnit");
-  }
-
-  /**
    * Builds a class with a method containing an INVOKEDYNAMIC instruction.
    */
   private static byte[] buildClassWithLambda(String bootstrapOwner, String bootstrapName,
@@ -285,21 +255,19 @@ class CallSiteExtractorTest {
    * Visits a specific method in bytecode and returns the extractor with results.
    */
   private static CallSiteExtractor visitMethod(byte[] bytecode, String methodName,
-                                                String descriptor) {
+                                               String descriptor) {
+    CallSiteExtractor extractor = new CallSiteExtractor();
     ClassReader reader = new ClassReader(bytecode);
-    final CallSiteExtractor[] extractorHolder = new CallSiteExtractor[1];
     reader.accept(new org.objectweb.asm.ClassVisitor(Opcodes.ASM9) {
       @Override
       public MethodVisitor visitMethod(int access, String name, String desc,
                                        String signature, String[] exceptions) {
         if (name.equals(methodName) && desc.equals(descriptor)) {
-          extractorHolder[0] =
-              new CallSiteExtractor("com/example/TestClass", access, name, desc, signature, exceptions);
-          return extractorHolder[0];
+          return extractor;
         }
         return null;
       }
     }, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-    return extractorHolder[0];
+    return extractor;
   }
 }

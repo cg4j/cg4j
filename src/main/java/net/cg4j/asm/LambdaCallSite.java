@@ -13,7 +13,6 @@ public final class LambdaCallSite {
   private final String implName;
   private final String implDescriptor;
   private final int implTag;
-  private final int ordinal;
 
   /**
    * Creates a lambda call site.
@@ -27,27 +26,8 @@ public final class LambdaCallSite {
    * @param implTag handle tag (e.g., Opcodes.H_INVOKESTATIC)
    */
   public LambdaCallSite(String samMethodName, String samDescriptor, String indyDescriptor,
-                        String implOwner, String implName,
-                        String implDescriptor, int implTag) {
-    this(samMethodName, samDescriptor, indyDescriptor, implOwner, implName,
-        implDescriptor, implTag, 0);
-  }
-
-  /**
-   * Creates a lambda call site with an explicit class-wide ordinal.
-   *
-   * @param samMethodName SAM method name (e.g., "invoke", "run", "apply")
-   * @param samDescriptor erased SAM method descriptor (e.g., "(Ljava/lang/Object;)Ljava/lang/Object;")
-   * @param indyDescriptor invokedynamic call-site descriptor (return type is the functional interface)
-   * @param implOwner lambda body owner class in internal format
-   * @param implName lambda body method name
-   * @param implDescriptor lambda body method descriptor
-   * @param implTag handle tag (e.g., Opcodes.H_INVOKESTATIC)
-   * @param ordinal class-wide lambda ordinal matching the invokedynamic order
-   */
-  public LambdaCallSite(String samMethodName, String samDescriptor, String indyDescriptor,
-                        String implOwner, String implName,
-                        String implDescriptor, int implTag, int ordinal) {
+                         String implOwner, String implName,
+                         String implDescriptor, int implTag) {
     this.samMethodName = samMethodName;
     this.samDescriptor = samDescriptor;
     this.indyDescriptor = indyDescriptor;
@@ -55,7 +35,6 @@ public final class LambdaCallSite {
     this.implName = implName;
     this.implDescriptor = implDescriptor;
     this.implTag = implTag;
-    this.ordinal = ordinal;
   }
 
   /**
@@ -108,19 +87,11 @@ public final class LambdaCallSite {
     return implTag;
   }
 
-  /**
-   * Returns the class-wide lambda ordinal used by WALA's synthetic naming scheme.
-   */
-  public int getOrdinal() {
-    return ordinal;
-  }
-
   @Override
   public String toString() {
     return "LambdaCallSite{"
         + "sam=" + samMethodName + samDescriptor
         + ", impl=" + implOwner + "." + implName + implDescriptor
-        + ", ordinal=" + ordinal
         + "}";
   }
 }

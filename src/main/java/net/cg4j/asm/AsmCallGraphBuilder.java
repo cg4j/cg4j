@@ -6,7 +6,6 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,9 +36,6 @@ public final class AsmCallGraphBuilder {
       new MethodSignature("<boot>", "fakeRoot", "()V");
   private static final MethodSignature FAKE_WORLD_CLINIT_METHOD =
       new MethodSignature("<boot>", "fakeWorldClinit", "()V");
-  private static final MethodSignature SYSTEM_ARRAYCOPY_MODEL_METHOD =
-      new MethodSignature("com/ibm/wala/model/java/lang/System",
-          "arraycopy", "(Ljava/lang/Object;Ljava/lang/Object;)V");
   private static final List<String> PRE_ALLOCATED_TYPES = List.of(
       "java/lang/Object",
       "java/lang/ArithmeticException",
@@ -49,21 +45,13 @@ public final class AsmCallGraphBuilder {
       "java/lang/IndexOutOfBoundsException",
       "java/lang/NegativeArraySizeException",
       "java/lang/ExceptionInInitializerError",
-      "java/lang/NullPointerException",
-      "java/lang/ClassLoader",
-      "java/lang/Number",
-      "java/lang/SecurityManager",
-      "java/lang/Shutdown",
-      "java/lang/Thread",
-      "java/lang/ThreadGroup",
-      "java/lang/reflect/Executable",
-      "okio/AsyncTimeout",
-      "okio/Timeout"
+      "java/lang/NullPointerException"
   );
 
   private ClassHierarchy hierarchy;
   private Map<String, byte[]> classBytecode;
   private JarScanner.PrimordialBytecodeLoader primordialLoader;
+  private final Map<String, Integer> lambdaCounters = new HashMap<>();
 
   /**
    * Builds a call graph for the given JAR file using RTA algorithm.
@@ -145,7 +133,7 @@ public final class AsmCallGraphBuilder {
     Set<MethodSignature> entryPoints = new HashSet<>();
 
     for (ClassInfo classInfo : appClasses.values()) {
-      if (classInfo.isInterface()) {
+      if (!classInfo.isPublic() || classInfo.isInterface()) {
         continue;
       }
 
@@ -160,29 +148,6 @@ public final class AsmCallGraphBuilder {
   }
 
   /**
-   * Returns true if the class can be modeled as a concrete synthetic allocation.
-   */
-  private boolean isAllocatableReference(ClassInfo classInfo) {
-    return classInfo != null && !classInfo.isInterface() && !classInfo.isAbstract();
-  }
-
-  /**
-   * Finds all non-primordial class initializers as synthetic boot seeds.
-   */
-  private Set<MethodSignature> findClinitMethods() {
-    Set<MethodSignature> clinits = new HashSet<>();
-
-    for (ClassInfo classInfo : hierarchy.getAllClasses().values()) {
-      if (classInfo.hasClinit()
-          && classInfo.getLoaderType() != ClassLoaderType.PRIMORDIAL) {
-        clinits.add(new MethodSignature(classInfo.getName(), "<clinit>", "()V"));
-      }
-    }
-
-    return clinits;
-  }
-
-  /**
    * Runs the worklist algorithm to compute reachable methods and call edges.
    */
   private WorklistResult runWorklist(Set<MethodSignature> entryPoints) {
@@ -191,25 +156,15 @@ public final class AsmCallGraphBuilder {
     for (MethodSignature entryPoint : entryPoints) {
       state.edges.add(new CallGraphResult.Edge(BOOT_METHOD, entryPoint));
       state.methodQueue.add(entryPoint);
-      processClassInitializer(entryPoint.getOwner(), state);
-      seedEntrypointArguments(entryPoint, state);
 
       if (!entryPoint.isStatic()) {
         handleNewAllocation(entryPoint.getOwner(), state);
       }
     }
 
-    for (MethodSignature clinit : findClinitMethods()) {
-      state.edges.add(new CallGraphResult.Edge(BOOT_METHOD, clinit));
-      state.methodQueue.add(clinit);
-    }
-
     for (String preAllocatedType : PRE_ALLOCATED_TYPES) {
-      seedBootAllocation(preAllocatedType, state);
+      handleNewAllocation(preAllocatedType, state);
     }
-
-    seedSystemArraycopyModel(state);
-    seedWalaRuntimeModels(state);
 
     int processedCount = 0;
     while (!state.methodQueue.isEmpty() || !state.receiverEvents.isEmpty()) {
@@ -298,7 +253,6 @@ public final class AsmCallGraphBuilder {
         state.selectorToReceiverTypes.getOrDefault(selector, Collections.emptySet())) {
       tryDispatch(use, receiverType, state);
     }
-
   }
 
   /**
@@ -359,12 +313,7 @@ public final class AsmCallGraphBuilder {
       return;
     }
 
-    String receiverConstraint = use.callSite.getOwner();
-    if (shouldUseReceiverHint(use.callSite)) {
-      receiverConstraint = use.callSite.getReceiverTypeHint();
-    }
-
-    if (!hierarchy.isAssignableTo(concreteType, receiverConstraint)) {
+    if (!hierarchy.isAssignableTo(concreteType, use.callSite.getOwner())) {
       return;
     }
 
@@ -381,163 +330,11 @@ public final class AsmCallGraphBuilder {
    * Adds a resolved call graph edge and enqueues the target if it becomes reachable.
    */
   private void addResolvedTarget(MethodSignature caller, MethodSignature target, RtaState state) {
-    processClassInitializer(target.getOwner(), state);
-
     if (state.edges.add(new CallGraphResult.Edge(caller, target))
         && !isCloneMethod(target)
         && !state.reachable.contains(target)) {
       state.methodQueue.add(target);
     }
-  }
-
-  /**
-   * Seeds synthetic fake-root allocations for the receiver and declared argument types.
-   */
-  private void seedEntrypointArguments(MethodSignature entryPoint, RtaState state) {
-    if (!entryPoint.isStatic()) {
-      seedBootAllocation(entryPoint.getOwner(), state);
-    }
-
-    for (Type argumentType : Type.getArgumentTypes(entryPoint.getDescriptor())) {
-      seedBootAllocation(argumentType, state);
-    }
-  }
-
-  /**
-   * Seeds a fake-root allocation for a declared reference type.
-   */
-  private void seedBootAllocation(Type type, RtaState state) {
-    if (type == null) {
-      return;
-    }
-
-    if (type.getSort() == Type.OBJECT) {
-      seedBootAllocation(type.getInternalName(), state);
-      return;
-    }
-
-    if (type.getSort() == Type.ARRAY) {
-      seedBootAllocation(type.getElementType(), state);
-    }
-  }
-
-  /**
-   * Seeds a fake-root allocation and default-constructor edge for a concrete class.
-   */
-  private void seedBootAllocation(String className, RtaState state) {
-    ClassInfo classInfo = hierarchy.getClass(className);
-    if (classInfo == null || classInfo.isInterface()) {
-      return;
-    }
-
-    registerSyntheticAllocation(className, state);
-
-    MethodSignature defaultCtor = classInfo.getMethod("<init>", "()V");
-    if (defaultCtor != null) {
-      addResolvedTarget(BOOT_METHOD, defaultCtor, state);
-    }
-  }
-
-  /**
-   * Registers a declared fake-root allocation, including abstract classes, to mimic WALA.
-   */
-  private void registerSyntheticAllocation(String allocatedType, RtaState state) {
-    ClassInfo klass = hierarchy.getClass(allocatedType);
-    if (klass == null || klass.isInterface()) {
-      return;
-    }
-
-    if (!state.allocatedTypes.add(allocatedType)) {
-      return;
-    }
-
-    registerImplementedMethods(allocatedType, allocatedType, state);
-    for (String iface : hierarchy.getAllImplementedInterfaces(allocatedType)) {
-      registerImplementedMethods(iface, allocatedType, state);
-    }
-
-    String superName = klass.getSuperName();
-    while (superName != null) {
-      registerImplementedMethods(superName, allocatedType, state);
-      ClassInfo superClass = hierarchy.getClass(superName);
-      if (superClass == null) {
-        break;
-      }
-      superName = superClass.getSuperName();
-    }
-
-    processClassInitializer(allocatedType, state);
-  }
-
-  /**
-   * Adds WALA's synthetic arraycopy-to-ArrayStoreException summary edge.
-   */
-  private void seedSystemArraycopyModel(RtaState state) {
-    MethodSignature arrayStoreCtor =
-        new MethodSignature("java/lang/ArrayStoreException", "<init>", "()V");
-    state.edges.add(new CallGraphResult.Edge(SYSTEM_ARRAYCOPY_MODEL_METHOD, arrayStoreCtor));
-  }
-
-  /**
-   * Adds WALA-style summaries for native/runtime behaviors that bytecode analysis will not see.
-   */
-  private void seedWalaRuntimeModels(RtaState state) {
-    seedModeledTarget(state, "java/lang/System", "arraycopy",
-        "(Ljava/lang/Object;ILjava/lang/Object;II)V",
-        "com/ibm/wala/model/java/lang/System", "arraycopy",
-        "(Ljava/lang/Object;Ljava/lang/Object;)V");
-    seedModeledTarget(state, "java/lang/System", "<clinit>", "()V",
-        "java/lang/Shutdown", "runHooks", "()V");
-    seedModeledTarget(state, "java/lang/System", "<clinit>", "()V",
-        "java/lang/System", "initializeSystemClass", "()V");
-    seedModeledTarget(state, "java/lang/System", "<clinit>", "()V",
-        "java/lang/ThreadGroup", "uncaughtException",
-        "(Ljava/lang/Thread;Ljava/lang/Throwable;)V");
-
-    seedModeledTarget(state, "java/lang/Thread", "start", "()V",
-        "java/lang/Thread", "run", "()V");
-    seedModeledTarget(state, "java/lang/Thread", "start", "()V",
-        "okhttp3/internal/concurrent/TaskRunner$runnable$1", "run", "()V");
-    seedModeledTarget(state, "java/lang/Thread", "start", "()V",
-        "okhttp3/internal/connection/RealCall$AsyncCall", "run", "()V");
-    seedModeledTarget(state, "java/lang/Thread", "start", "()V",
-        "okio/AsyncTimeout$Watchdog", "run", "()V");
-
-    seedModeledTarget(state, "java/lang/String", "encode8859_1", "(B[BZ)[B",
-        "java/lang/Object", "clone", "()Ljava/lang/Object;");
-    seedModeledTarget(state, "java/lang/String", "encodeASCII", "(B[B)[B",
-        "java/lang/Object", "clone", "()Ljava/lang/Object;");
-    seedModeledTarget(state, "java/lang/String", "encodeUTF8", "(B[BZ)[B",
-        "java/lang/Object", "clone", "()Ljava/lang/Object;");
-    seedModeledTarget(state, "java/lang/String", "encodeWithEncoder",
-        "(Ljava/nio/charset/Charset;B[BZ)[B",
-        "java/lang/Object", "clone", "()Ljava/lang/Object;");
-    seedModeledTarget(state, "java/lang/Throwable", "getStackTrace",
-        "()[Ljava/lang/StackTraceElement;",
-        "java/lang/Object", "clone", "()Ljava/lang/Object;");
-    seedModeledTarget(state, "java/lang/Throwable", "setStackTrace",
-        "([Ljava/lang/StackTraceElement;)V",
-        "java/lang/Object", "clone", "()Ljava/lang/Object;");
-    seedModeledTarget(state, "java/lang/Class", "getInterfaces", "(Z)[Ljava/lang/Class;",
-        "java/lang/Object", "clone", "()Ljava/lang/Object;");
-    seedModeledTarget(state, "java/lang/reflect/Method", "getParameterTypes",
-        "()[Ljava/lang/Class;",
-        "java/lang/Object", "clone", "()Ljava/lang/Object;");
-    seedModeledTarget(state, "java/lang/reflect/Proxy", "getProxyConstructor",
-        "(Ljava/lang/Class;Ljava/lang/ClassLoader;[Ljava/lang/Class;)"
-            + "Ljava/lang/reflect/Constructor;",
-        "java/lang/Object", "clone", "()Ljava/lang/Object;");
-  }
-
-  /**
-   * Adds a modeled edge and enqueues its target if needed.
-   */
-  private void seedModeledTarget(RtaState state, String sourceOwner, String sourceName,
-                                 String sourceDescriptor, String targetOwner, String targetName,
-                                 String targetDescriptor) {
-    MethodSignature source = new MethodSignature(sourceOwner, sourceName, sourceDescriptor);
-    MethodSignature target = new MethodSignature(targetOwner, targetName, targetDescriptor);
-    addResolvedTarget(source, target, state);
   }
 
   /**
@@ -599,7 +396,7 @@ public final class AsmCallGraphBuilder {
 
     ClassReader reader = new ClassReader(bytecode);
     MethodAnalysisVisitor visitor =
-        new MethodAnalysisVisitor(method.getOwner(), method.getName(), method.getDescriptor());
+        new MethodAnalysisVisitor(method.getName(), method.getDescriptor());
     reader.accept(visitor, PARSE_OPTIONS);
     return visitor.getResult();
   }
@@ -609,7 +406,7 @@ public final class AsmCallGraphBuilder {
    * and edges matching WALA's two-hop pattern: caller -> SAM, SAM -> impl.
    */
   private void processLambdaCallSite(MethodSignature caller, LambdaCallSite lambda, RtaState state) {
-    String syntheticName = generateLambdaClassName(caller.getOwner(), lambda.getOrdinal());
+    String syntheticName = generateLambdaClassName(caller.getOwner());
 
     ClassInfo ownerClass = hierarchy.getClass(caller.getOwner());
     ClassLoaderType loaderType = ownerClass != null
@@ -646,9 +443,10 @@ public final class AsmCallGraphBuilder {
    * Generates a WALA-compatible synthetic lambda class name.
    * Format: wala/lambda$owner_with_slashes_as_dollars$index
    */
-  private String generateLambdaClassName(String ownerClass, int ordinal) {
+  private String generateLambdaClassName(String ownerClass) {
+    int index = lambdaCounters.merge(ownerClass, 0, (old, value) -> old + 1);
     String encodedOwner = ownerClass.replace('/', '$');
-    return LAMBDA_CLASS_PREFIX + encodedOwner + "$" + ordinal;
+    return LAMBDA_CLASS_PREFIX + encodedOwner + "$" + index;
   }
 
   /**
@@ -680,13 +478,6 @@ public final class AsmCallGraphBuilder {
     return method.getOwner().equals("java/lang/Object")
         && method.getName().equals("clone")
         && method.getDescriptor().equals("()Ljava/lang/Object;");
-  }
-
-  /**
-   * Uses receiver hints only for excluded/JDK-style APIs where WALA avoids broad fan-out.
-   */
-  private boolean shouldUseReceiverHint(CallSite callSite) {
-    return false;
   }
 
   /**
@@ -839,18 +630,15 @@ public final class AsmCallGraphBuilder {
    * ClassVisitor that extracts call sites and allocations from a specific method.
    */
   private static class MethodAnalysisVisitor extends ClassVisitor {
-    private final String owner;
     private final String targetMethodName;
     private final String targetDescriptor;
-    private int nextLambdaOrdinal;
     private List<CallSite> callSites = List.of();
     private Set<String> instantiatedTypes = Set.of();
     private Set<String> staticFieldOwners = Set.of();
     private List<LambdaCallSite> lambdaCallSites = List.of();
 
-    MethodAnalysisVisitor(String owner, String methodName, String descriptor) {
+    MethodAnalysisVisitor(String methodName, String descriptor) {
       super(Opcodes.ASM9);
-      this.owner = owner;
       this.targetMethodName = methodName;
       this.targetDescriptor = descriptor;
     }
@@ -859,38 +647,14 @@ public final class AsmCallGraphBuilder {
     public MethodVisitor visitMethod(int access, String name, String descriptor,
                                      String signature, String[] exceptions) {
       if (name.equals(targetMethodName) && descriptor.equals(targetDescriptor)) {
-        CallSiteExtractor extractor =
-            new CallSiteExtractor(
-                owner, access, name, descriptor, signature, exceptions, nextLambdaOrdinal);
+        CallSiteExtractor extractor = new CallSiteExtractor();
         callSites = extractor.getCallSites();
         instantiatedTypes = extractor.getInstantiatedTypes();
         staticFieldOwners = extractor.getStaticFieldOwners();
         lambdaCallSites = extractor.getLambdaCallSites();
-        nextLambdaOrdinal = extractor.getNextLambdaOrdinal();
         return extractor;
       }
-
-      return new LambdaOrdinalVisitor();
-    }
-
-    /**
-     * Counts lambda sites in preceding methods so synthetic names match class-wide bootstrap order.
-     */
-    private class LambdaOrdinalVisitor extends MethodVisitor {
-      LambdaOrdinalVisitor() {
-        super(Opcodes.ASM9);
-      }
-
-      @Override
-      public void visitInvokeDynamicInsn(String name, String descriptor,
-                                         org.objectweb.asm.Handle bootstrapMethodHandle,
-                                         Object... bootstrapMethodArguments) {
-        if (bootstrapMethodHandle.getOwner().equals("java/lang/invoke/LambdaMetafactory")
-            && (bootstrapMethodHandle.getName().equals("metafactory")
-                || bootstrapMethodHandle.getName().equals("altMetafactory"))) {
-          nextLambdaOrdinal++;
-        }
-      }
+      return null;
     }
 
     MethodAnalysisResult getResult() {
