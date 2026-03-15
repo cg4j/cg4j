@@ -246,6 +246,92 @@ class ClassHierarchyTest {
   }
 
   /**
+   * Unit test: Tests implemented interface lookups are cached and stable.
+   * Expects repeated lookups to return the same computed interface closure.
+   */
+  @Test
+  void testGetAllImplementedInterfaces_CachesTransitiveClosure() {
+    ClassInfo objectClass = new ClassInfo("java/lang/Object", null, Collections.emptySet(),
+        Collections.emptySet(), Opcodes.ACC_PUBLIC, ClassLoaderType.PRIMORDIAL, false);
+
+    ClassInfo baseInterface = new ClassInfo("com/example/BaseInterface", "java/lang/Object",
+        Collections.emptySet(), Collections.emptySet(),
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT,
+        ClassLoaderType.APPLICATION, false);
+
+    ClassInfo childInterface = new ClassInfo("com/example/ChildInterface", "java/lang/Object",
+        Set.of("com/example/BaseInterface"), Collections.emptySet(),
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT,
+        ClassLoaderType.APPLICATION, false);
+
+    ClassInfo implClass = new ClassInfo("com/example/MyImpl", "java/lang/Object",
+        Set.of("com/example/ChildInterface"), Collections.emptySet(),
+        Opcodes.ACC_PUBLIC, ClassLoaderType.APPLICATION, false);
+
+    ClassHierarchy hierarchy = new ClassHierarchy(new java.util.HashMap<>(Map.of(
+        "java/lang/Object", objectClass,
+        "com/example/BaseInterface", baseInterface,
+        "com/example/ChildInterface", childInterface,
+        "com/example/MyImpl", implClass
+    )));
+
+    Set<String> firstLookup = hierarchy.getAllImplementedInterfaces("com/example/MyImpl");
+    Set<String> secondLookup = hierarchy.getAllImplementedInterfaces("com/example/MyImpl");
+
+    assertThat(firstLookup)
+        .containsExactly("com/example/ChildInterface", "com/example/BaseInterface");
+    assertThat(secondLookup)
+        .containsExactly("com/example/ChildInterface", "com/example/BaseInterface");
+    assertThat(secondLookup).isEqualTo(firstLookup);
+  }
+
+  /**
+   * Unit test: Tests synthetic class registration invalidates implemented-interface cache.
+   * Expects new interface closures to become visible after adding a synthetic class.
+   */
+  @Test
+  void testRegisterSyntheticClass_InvalidatesImplementedInterfacesCache() {
+    ClassInfo objectClass = new ClassInfo("java/lang/Object", null, Collections.emptySet(),
+        Collections.emptySet(), Opcodes.ACC_PUBLIC, ClassLoaderType.PRIMORDIAL, false);
+
+    ClassInfo parentInterface = new ClassInfo("com/example/ParentInterface", "java/lang/Object",
+        Collections.emptySet(), Collections.emptySet(),
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT,
+        ClassLoaderType.APPLICATION, false);
+
+    ClassInfo childInterface = new ClassInfo("com/example/ChildInterface", "java/lang/Object",
+        Set.of("com/example/ParentInterface"), Collections.emptySet(),
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT,
+        ClassLoaderType.APPLICATION, false);
+
+    ClassHierarchy hierarchy = new ClassHierarchy(new java.util.HashMap<>(Map.of(
+        "java/lang/Object", objectClass,
+        "com/example/ParentInterface", parentInterface,
+        "com/example/ChildInterface", childInterface
+    )));
+
+    assertThat(hierarchy.getAllImplementedInterfaces("com/example/ChildInterface"))
+        .containsExactly("com/example/ParentInterface");
+
+    ClassInfo syntheticClass = new ClassInfo(
+        "wala/lambda$cache$0",
+        "java/lang/Object",
+        Set.of("com/example/ChildInterface"),
+        Collections.emptySet(),
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL | Opcodes.ACC_SYNTHETIC,
+        ClassLoaderType.APPLICATION,
+        false
+    );
+
+    hierarchy.registerSyntheticClass(syntheticClass);
+
+    assertThat(hierarchy.getAllImplementedInterfaces("wala/lambda$cache$0"))
+        .containsExactly("com/example/ChildInterface", "com/example/ParentInterface");
+    assertThat(hierarchy.isAssignableTo("wala/lambda$cache$0", "com/example/ParentInterface"))
+        .isTrue();
+  }
+
+  /**
    * Unit test: Tests default interface dispatch resolution for concrete implementors.
    * Expects the interface default method to be selected when the class does not override it.
    */

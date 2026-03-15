@@ -21,6 +21,7 @@ public final class ClassHierarchy {
   private final Map<String, Set<String>> subclasses;
   private final Map<String, Set<String>> implementors;
   private final Map<String, Set<String>> subtypesCache;
+  private final Map<String, Set<String>> implementedInterfacesCache;
 
   /**
    * Creates a class hierarchy from class information.
@@ -32,6 +33,7 @@ public final class ClassHierarchy {
     this.subclasses = new HashMap<>();
     this.implementors = new HashMap<>();
     this.subtypesCache = new HashMap<>();
+    this.implementedInterfacesCache = new HashMap<>();
     buildReverseRelations();
   }
 
@@ -157,6 +159,13 @@ public final class ClassHierarchy {
    * Returns all interfaces implemented by a class or interface, transitively.
    */
   public Set<String> getAllImplementedInterfaces(String className) {
+    return implementedInterfacesCache.computeIfAbsent(className, this::computeAllImplementedInterfaces);
+  }
+
+  /**
+   * Computes all interfaces implemented by a class or interface, transitively.
+   */
+  private Set<String> computeAllImplementedInterfaces(String className) {
     ClassInfo info = classes.get(className);
     if (info == null) {
       return Collections.emptySet();
@@ -299,7 +308,7 @@ public final class ClassHierarchy {
 
   /**
    * Registers a synthetic class (e.g., lambda) into the hierarchy.
-   * Updates reverse relations and invalidates the subtypes cache.
+   * Updates reverse relations and invalidates hierarchy caches.
    *
    * @param syntheticClass the synthetic class to register
    */
@@ -316,8 +325,9 @@ public final class ClassHierarchy {
           .add(syntheticClass.getName());
     }
 
-    // Invalidate cache — synthetic classes are leaf nodes but affect parent lookups
+    // Invalidate caches — synthetic classes are leaf nodes but affect parent lookups
     subtypesCache.clear();
+    implementedInterfacesCache.clear();
   }
 
   /**
