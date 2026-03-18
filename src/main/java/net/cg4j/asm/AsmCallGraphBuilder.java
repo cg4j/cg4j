@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -31,6 +32,21 @@ public final class AsmCallGraphBuilder {
   private static final Logger logger = LogManager.getLogger(AsmCallGraphBuilder.class);
   private static final int PARSE_OPTIONS = ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES;
   private static final String LAMBDA_CLASS_PREFIX = "wala/lambda$";
+  private static final MethodSignature BOOT_METHOD =
+      new MethodSignature("<boot>", "fakeRoot", "()V");
+  private static final MethodSignature FAKE_WORLD_CLINIT_METHOD =
+      new MethodSignature("<boot>", "fakeWorldClinit", "()V");
+  private static final List<String> PRE_ALLOCATED_TYPES = List.of(
+      "java/lang/Object",
+      "java/lang/ArithmeticException",
+      "java/lang/ArrayStoreException",
+      "java/lang/ClassCastException",
+      "java/lang/ClassNotFoundException",
+      "java/lang/IndexOutOfBoundsException",
+      "java/lang/NegativeArraySizeException",
+      "java/lang/ExceptionInInitializerError",
+      "java/lang/NullPointerException"
+  );
 
   private ClassHierarchy hierarchy;
   private Map<String, byte[]> classBytecode;
@@ -47,35 +63,31 @@ public final class AsmCallGraphBuilder {
    * @return the call graph result
    */
   public CallGraphResult buildCallGraph(String jarFile, List<File> dependencies,
-                                         boolean includeRt, ScopeExclusions exclusions)
+                                        boolean includeRt, ScopeExclusions exclusions)
       throws IOException {
     logger.info("Loading classes...");
 
-    // Step 1: Load all classes
     Map<String, ClassInfo> allClasses = new HashMap<>();
     classBytecode = new HashMap<>();
 
-    // Load JDK classes (Primordial)
     Map<String, ClassInfo> jdkClasses = JarScanner.scanJdk();
     allClasses.putAll(jdkClasses);
     logger.info("Loaded {} JDK classes", jdkClasses.size());
 
-    // Load dependency classes (Extension)
     if (dependencies != null && !dependencies.isEmpty()) {
-      Map<String, ClassInfo> depClasses = JarScanner.scanJars(dependencies, ClassLoaderType.EXTENSION);
+      Map<String, ClassInfo> depClasses =
+          JarScanner.scanJars(dependencies, ClassLoaderType.EXTENSION);
       allClasses.putAll(depClasses);
       loadBytecode(dependencies, classBytecode);
       logger.info("Loaded {} dependency classes", depClasses.size());
     }
 
-    // Load application classes (Application)
     File targetJar = new File(jarFile);
     Map<String, ClassInfo> appClasses = JarScanner.scanJar(targetJar, ClassLoaderType.APPLICATION);
     allClasses.putAll(appClasses);
     loadBytecode(List.of(targetJar), classBytecode);
     logger.info("Loaded {} application classes", appClasses.size());
 
-    // Step 1.5: Apply scope exclusions to Primordial classes
     int beforeSize = allClasses.size();
     allClasses = exclusions.applyExclusions(allClasses);
     int excludedCount = beforeSize - allClasses.size();
@@ -84,12 +96,10 @@ public final class AsmCallGraphBuilder {
           allClasses.size(), excludedCount, exclusions.patternCount());
     }
 
-    // Step 2: Build class hierarchy
     logger.info("Building class hierarchy...");
     hierarchy = new ClassHierarchy(allClasses);
     logger.info("Class hierarchy built with {} classes", hierarchy.size());
 
-    // Step 3: Find entry points (public methods from APPLICATION classes)
     Set<MethodSignature> entryPoints = findEntryPoints(appClasses);
     logger.info("Found {} entry points", entryPoints.size());
 
@@ -97,7 +107,6 @@ public final class AsmCallGraphBuilder {
       throw new RuntimeException("No entry points found in JAR file");
     }
 
-    // Step 4: Run worklist algorithm
     logger.info("Running worklist algorithm with RTA...");
     WorklistResult result;
     try (JarScanner.PrimordialBytecodeLoader loader = JarScanner.createPrimordialLoader()) {
@@ -107,7 +116,6 @@ public final class AsmCallGraphBuilder {
       primordialLoader = null;
     }
 
-    // Step 5: Filter edges if needed
     Set<CallGraphResult.Edge> edges = result.edges;
     if (!includeRt) {
       edges = filterRtEdges(edges);
@@ -125,13 +133,11 @@ public final class AsmCallGraphBuilder {
     Set<MethodSignature> entryPoints = new HashSet<>();
 
     for (ClassInfo classInfo : appClasses.values()) {
-      // Only public, non-interface classes
       if (!classInfo.isPublic() || classInfo.isInterface()) {
         continue;
       }
 
       for (MethodSignature method : classInfo.getMethods()) {
-        // Only include public, non-abstract methods as entry points
         if (method.isPublic() && !method.isAbstract()) {
           entryPoints.add(method);
         }
@@ -142,191 +148,215 @@ public final class AsmCallGraphBuilder {
   }
 
   /**
-   * Finds static initializer methods from Application and Extension classes.
-   * Primordial classes are excluded to avoid seeding deep JDK-internal analysis
-   * that inflates the instantiated types set with unreachable types.
-   *
-   * @return set of clinit method signatures
-   */
-  private Set<MethodSignature> findClinitMethods() {
-    Set<MethodSignature> clinits = new HashSet<>();
-
-    for (ClassInfo classInfo : hierarchy.getAllClasses().values()) {
-      if (classInfo.hasClinit()
-          && classInfo.getLoaderType() != ClassLoaderType.PRIMORDIAL) {
-        clinits.add(new MethodSignature(classInfo.getName(), "<clinit>", "()V"));
-      }
-    }
-
-    return clinits;
-  }
-
-  /**
    * Runs the worklist algorithm to compute reachable methods and call edges.
-   *
-   * @param entryPoints the set of entry point methods
-   * @return the worklist result containing reachable methods and edges
    */
   private WorklistResult runWorklist(Set<MethodSignature> entryPoints) {
-    Set<MethodSignature> reachable = new HashSet<>();
-    Set<CallGraphResult.Edge> edges = new HashSet<>();
-    Deque<MethodSignature> worklist = new ArrayDeque<>(entryPoints);
+    RtaState state = new RtaState();
 
-    // Track instantiated types for RTA
-    Set<String> instantiatedTypes = new HashSet<>();
+    for (MethodSignature entryPoint : entryPoints) {
+      state.edges.add(new CallGraphResult.Edge(BOOT_METHOD, entryPoint));
+      state.methodQueue.add(entryPoint);
 
-    // Track virtual/interface call sites for fixed-point re-resolution
-    List<VirtualCallRecord> virtualCallRecords = new ArrayList<>();
-
-    // Entry point classes are considered instantiated
-    for (MethodSignature entry : entryPoints) {
-      instantiatedTypes.add(entry.getOwner());
-    }
-
-    // Add synthetic boot entry point
-    MethodSignature bootMethod = new MethodSignature("<boot>", "fakeRoot", "()V");
-
-    // Add edges from boot to all entry points
-    for (MethodSignature entry : entryPoints) {
-      edges.add(new CallGraphResult.Edge(bootMethod, entry));
-    }
-
-    // Add edges from boot to <clinit> methods for APPLICATION classes
-    for (MethodSignature clinit : findClinitMethods()) {
-      edges.add(new CallGraphResult.Edge(bootMethod, clinit));
-      // Add <clinit> to worklist so its call sites are analyzed
-      if (!reachable.contains(clinit)) {
-        worklist.add(clinit);
+      if (!entryPoint.isStatic()) {
+        handleNewAllocation(entryPoint.getOwner(), state);
       }
+    }
+
+    for (String preAllocatedType : PRE_ALLOCATED_TYPES) {
+      handleNewAllocation(preAllocatedType, state);
     }
 
     int processedCount = 0;
-    while (!worklist.isEmpty()) {
-      MethodSignature method = worklist.poll();
-
-      if (reachable.contains(method)) {
-        continue;
-      }
-      reachable.add(method);
-      processedCount++;
-
-      if (processedCount % 1000 == 0) {
-        logger.debug("Processed {} methods, worklist size: {}", processedCount, worklist.size());
-      }
-
-      // Extract call sites and instantiated types
-      MethodAnalysisResult analysisResult = analyzeMethod(method);
-      instantiatedTypes.addAll(analysisResult.instantiatedTypes);
-
-      for (CallSite callSite : analysisResult.callSites) {
-        Set<MethodSignature> targets = hierarchy.resolveCallSiteRTA(callSite, instantiatedTypes);
-
-        for (MethodSignature target : targets) {
-          edges.add(new CallGraphResult.Edge(method, target));
-
-          if (!reachable.contains(target)) {
-            worklist.add(target);
-          }
+    while (!state.methodQueue.isEmpty() || !state.receiverEvents.isEmpty()) {
+      while (!state.methodQueue.isEmpty()) {
+        MethodSignature method = state.methodQueue.removeFirst();
+        if (!state.reachable.add(method)) {
+          continue;
         }
 
-        // Record virtual/interface call sites for later re-resolution
-        if (callSite.isVirtual()) {
-          virtualCallRecords.add(new VirtualCallRecord(method, callSite));
+        processedCount++;
+        if (processedCount % 1000 == 0) {
+          logger.debug("Processed {} methods, pending methods: {}, pending receiver events: {}",
+              processedCount, state.methodQueue.size(), state.receiverEvents.size());
         }
+
+        processReachableMethod(method, state);
       }
 
-      // Process lambda/method-reference INVOKEDYNAMIC call sites
-      for (LambdaCallSite lambda : analysisResult.lambdaCallSites) {
-        processLambdaCallSite(method, lambda, edges, worklist, reachable, instantiatedTypes);
+      while (!state.receiverEvents.isEmpty()) {
+        ReceiverEvent event = state.receiverEvents.removeFirst();
+        for (VirtualCallUse use :
+            state.virtualCallIndex.getOrDefault(event.selector, Collections.emptyList())) {
+          tryDispatch(use, event.concreteType, state);
+        }
       }
     }
 
-    logger.info("Worklist complete: {} reachable methods, {} edges", reachable.size(), edges.size());
-
-    // Fixed-point: re-resolve virtual call sites until no new edges are discovered.
-    // Lambda classes registered late in the worklist may not have been visible to
-    // earlier virtual dispatch resolutions.
-    int fixedPointPass = 0;
-    int newEdges;
-    do {
-      newEdges = 0;
-      fixedPointPass++;
-
-      for (VirtualCallRecord record : virtualCallRecords) {
-        Set<MethodSignature> targets = hierarchy.resolveCallSiteRTA(
-            record.callSite, instantiatedTypes);
-
-        for (MethodSignature target : targets) {
-          if (edges.add(new CallGraphResult.Edge(record.caller, target))) {
-            newEdges++;
-            if (!reachable.contains(target)) {
-              worklist.add(target);
-            }
-          }
-        }
-      }
-
-      // Process any newly discovered methods from new edges
-      while (!worklist.isEmpty()) {
-        MethodSignature method = worklist.poll();
-        if (reachable.contains(method)) {
-          continue;
-        }
-        reachable.add(method);
-
-        MethodAnalysisResult analysisResult = analyzeMethod(method);
-        instantiatedTypes.addAll(analysisResult.instantiatedTypes);
-
-        for (CallSite callSite : analysisResult.callSites) {
-          Set<MethodSignature> targets = hierarchy.resolveCallSiteRTA(
-              callSite, instantiatedTypes);
-
-          for (MethodSignature target : targets) {
-            edges.add(new CallGraphResult.Edge(method, target));
-            if (!reachable.contains(target)) {
-              worklist.add(target);
-            }
-          }
-
-          if (callSite.isVirtual()) {
-            virtualCallRecords.add(new VirtualCallRecord(method, callSite));
-          }
-        }
-
-        for (LambdaCallSite lambda : analysisResult.lambdaCallSites) {
-          processLambdaCallSite(method, lambda, edges, worklist, reachable, instantiatedTypes);
-        }
-      }
-
-      if (newEdges > 0) {
-        logger.info("Fixed-point pass {}: {} new edges", fixedPointPass, newEdges);
-      }
-    } while (newEdges > 0 && fixedPointPass < 10);
-
-    return new WorklistResult(reachable, edges);
+    logger.info("Worklist complete: {} reachable methods, {} edges",
+        state.reachable.size(), state.edges.size());
+    return new WorklistResult(state.reachable, state.edges);
   }
 
   /**
-   * Analyzes a method's bytecode to extract call sites and instantiated types.
-   * Lazily loads primordial (JDK) bytecode on demand if not already cached.
+   * Processes the bytecode summary for a newly reachable method.
    */
-  private MethodAnalysisResult analyzeMethod(MethodSignature method) {
-    byte[] bytecode = classBytecode.get(method.getOwner());
-    if (bytecode == null && primordialLoader != null) {
-      // Lazy-load primordial bytecode from JDK runtime
-      bytecode = primordialLoader.loadBytecode(method.getOwner());
-      if (bytecode != null) {
-        classBytecode.put(method.getOwner(), bytecode);
-      }
-    }
-    if (bytecode == null) {
-      return new MethodAnalysisResult(List.of(), Set.of(), List.of());
+  private void processReachableMethod(MethodSignature method, RtaState state) {
+    MethodAnalysisResult analysisResult = analyzeMethod(method);
+
+    for (String instantiatedType : analysisResult.instantiatedTypes) {
+      handleNewAllocation(instantiatedType, state);
     }
 
-    ClassReader reader = new ClassReader(bytecode);
-    MethodAnalysisVisitor visitor = new MethodAnalysisVisitor(method.getName(), method.getDescriptor());
-    reader.accept(visitor, PARSE_OPTIONS);
-    return visitor.getResult();
+    for (CallSite callSite : analysisResult.callSites) {
+      processCallSite(method, callSite, state);
+    }
+
+    for (String fieldOwner : analysisResult.staticFieldOwners) {
+      processClassInitializer(fieldOwner, state);
+    }
+
+    for (LambdaCallSite lambdaCallSite : analysisResult.lambdaCallSites) {
+      processLambdaCallSite(method, lambdaCallSite, state);
+    }
+  }
+
+  /**
+   * Processes a single call site according to its JVM dispatch semantics.
+   */
+  private void processCallSite(MethodSignature caller, CallSite callSite, RtaState state) {
+    if (callSite.isStatic()) {
+      for (MethodSignature target : hierarchy.resolveStaticOrSpecialCall(
+          callSite.getOwner(), callSite.getName(), callSite.getDescriptor())) {
+        addResolvedTarget(caller, target, state);
+      }
+      processClassInitializer(callSite.getOwner(), state);
+      return;
+    }
+
+    if (callSite.isSpecial()) {
+      for (MethodSignature target : hierarchy.resolveStaticOrSpecialCall(
+          callSite.getOwner(), callSite.getName(), callSite.getDescriptor())) {
+        addResolvedTarget(caller, target, state);
+      }
+      return;
+    }
+
+    if (!callSite.isVirtual()) {
+      return;
+    }
+
+    SelectorKey selector = SelectorKey.from(callSite);
+    VirtualCallUse use = new VirtualCallUse(caller, callSite);
+    state.virtualCallIndex.computeIfAbsent(selector, key -> new ArrayList<>()).add(use);
+
+    for (String receiverType :
+        state.selectorToReceiverTypes.getOrDefault(selector, Collections.emptySet())) {
+      tryDispatch(use, receiverType, state);
+    }
+  }
+
+  /**
+   * Processes a newly allocated concrete type and registers it against selector buckets.
+   */
+  private void handleNewAllocation(String allocatedType, RtaState state) {
+    ClassInfo klass = hierarchy.getClass(allocatedType);
+    if (klass == null || klass.isInterface() || klass.isAbstract()) {
+      return;
+    }
+
+    if (!state.allocatedTypes.add(allocatedType)) {
+      return;
+    }
+
+    registerImplementedMethods(allocatedType, allocatedType, state);
+    for (String iface : hierarchy.getAllImplementedInterfaces(allocatedType)) {
+      registerImplementedMethods(iface, allocatedType, state);
+    }
+
+    String superName = klass.getSuperName();
+    while (superName != null) {
+      registerImplementedMethods(superName, allocatedType, state);
+      ClassInfo superClass = hierarchy.getClass(superName);
+      if (superClass == null) {
+        break;
+      }
+      superName = superClass.getSuperName();
+    }
+
+    processClassInitializer(allocatedType, state);
+  }
+
+  /**
+   * Registers selector-to-concrete-type membership for all methods declared on a type.
+   */
+  private void registerImplementedMethods(String declarerType, String concreteType, RtaState state) {
+    ClassInfo declarer = hierarchy.getClass(declarerType);
+    if (declarer == null) {
+      return;
+    }
+
+    for (MethodSignature method : declarer.getMethods()) {
+      SelectorKey selector = SelectorKey.from(method);
+      Set<String> bucket = state.selectorToReceiverTypes.computeIfAbsent(
+          selector, key -> new HashSet<>());
+      if (bucket.add(concreteType)) {
+        state.receiverEvents.addLast(new ReceiverEvent(selector, concreteType));
+      }
+    }
+  }
+
+  /**
+   * Resolves a virtual call site for a newly discovered receiver type.
+   */
+  private void tryDispatch(VirtualCallUse use, String concreteType, RtaState state) {
+    if (!use.processedTypes.add(concreteType)) {
+      return;
+    }
+
+    if (!hierarchy.isAssignableTo(concreteType, use.callSite.getOwner())) {
+      return;
+    }
+
+    MethodSignature target = hierarchy.resolveVirtualTarget(
+        concreteType, use.callSite.getName(), use.callSite.getDescriptor());
+    if (target == null || target.isAbstract()) {
+      return;
+    }
+
+    addResolvedTarget(use.caller, target, state);
+  }
+
+  /**
+   * Adds a resolved call graph edge and enqueues the target if it becomes reachable.
+   */
+  private void addResolvedTarget(MethodSignature caller, MethodSignature target, RtaState state) {
+    if (state.edges.add(new CallGraphResult.Edge(caller, target))
+        && !isCloneMethod(target)
+        && !state.reachable.contains(target)) {
+      state.methodQueue.add(target);
+    }
+  }
+
+  /**
+   * Triggers a class initializer and its superclass initializers exactly once.
+   */
+  private void processClassInitializer(String className, RtaState state) {
+    ClassInfo klass = hierarchy.getClass(className);
+    if (klass == null || !state.processedClinits.add(className)) {
+      return;
+    }
+
+    if (klass.hasClinit()) {
+      MethodSignature clinit = new MethodSignature(className, "<clinit>", "()V");
+      if (state.edges.add(new CallGraphResult.Edge(FAKE_WORLD_CLINIT_METHOD, clinit))
+          && !state.reachable.contains(clinit)) {
+        state.methodQueue.add(clinit);
+      }
+    }
+
+    if (klass.getSuperName() != null) {
+      processClassInitializer(klass.getSuperName(), state);
+    }
   }
 
   /**
@@ -335,44 +365,61 @@ public final class AsmCallGraphBuilder {
   private static class MethodAnalysisResult {
     final List<CallSite> callSites;
     final Set<String> instantiatedTypes;
+    final Set<String> staticFieldOwners;
     final List<LambdaCallSite> lambdaCallSites;
 
     MethodAnalysisResult(List<CallSite> callSites, Set<String> instantiatedTypes,
+                         Set<String> staticFieldOwners,
                          List<LambdaCallSite> lambdaCallSites) {
       this.callSites = callSites;
       this.instantiatedTypes = instantiatedTypes;
+      this.staticFieldOwners = staticFieldOwners;
       this.lambdaCallSites = lambdaCallSites;
     }
+  }
+
+  /**
+   * Analyzes a method's bytecode to extract call sites, allocations, and static field accesses.
+   * Lazily loads primordial (JDK) bytecode on demand if not already cached.
+   */
+  private MethodAnalysisResult analyzeMethod(MethodSignature method) {
+    byte[] bytecode = classBytecode.get(method.getOwner());
+    if (bytecode == null && primordialLoader != null) {
+      bytecode = primordialLoader.loadBytecode(method.getOwner());
+      if (bytecode != null) {
+        classBytecode.put(method.getOwner(), bytecode);
+      }
+    }
+    if (bytecode == null) {
+      return new MethodAnalysisResult(List.of(), Set.of(), Set.of(), List.of());
+    }
+
+    ClassReader reader = new ClassReader(bytecode);
+    MethodAnalysisVisitor visitor =
+        new MethodAnalysisVisitor(method.getName(), method.getDescriptor());
+    reader.accept(visitor, PARSE_OPTIONS);
+    return visitor.getResult();
   }
 
   /**
    * Processes a single lambda INVOKEDYNAMIC call site by creating a synthetic lambda class
    * and edges matching WALA's two-hop pattern: caller -> SAM, SAM -> impl.
    */
-  private void processLambdaCallSite(MethodSignature caller, LambdaCallSite lambda,
-                                     Set<CallGraphResult.Edge> edges,
-                                     Deque<MethodSignature> worklist,
-                                     Set<MethodSignature> reachable,
-                                     Set<String> instantiatedTypes) {
-    // Generate synthetic class name: wala/lambda$<owner/$->$>$<index>
+  private void processLambdaCallSite(MethodSignature caller, LambdaCallSite lambda, RtaState state) {
     String syntheticName = generateLambdaClassName(caller.getOwner());
 
-    // Determine loader type from the enclosing class
     ClassInfo ownerClass = hierarchy.getClass(caller.getOwner());
     ClassLoaderType loaderType = ownerClass != null
         ? ownerClass.getLoaderType() : ClassLoaderType.APPLICATION;
 
-    // Create the SAM method signature for the synthetic class
     MethodSignature samMethod = new MethodSignature(
         syntheticName, lambda.getSamMethodName(), lambda.getSamDescriptor(),
         Opcodes.ACC_PUBLIC);
 
-    // Extract functional interface from the SAM descriptor return type
     String functionalInterface = extractFunctionalInterface(lambda);
-
-    // Build synthetic ClassInfo
     Set<String> interfaces = functionalInterface != null
         ? Collections.singleton(functionalInterface) : Collections.emptySet();
+
     ClassInfo syntheticClass = new ClassInfo(
         syntheticName,
         "java/lang/Object",
@@ -382,22 +429,14 @@ public final class AsmCallGraphBuilder {
         loaderType,
         false);
 
-    // Register in hierarchy
     hierarchy.registerSyntheticClass(syntheticClass);
-    instantiatedTypes.add(syntheticName);
+    handleNewAllocation(syntheticName, state);
 
-    // Edge 1: caller -> synthetic.SAM (enclosing method invokes functional interface)
-    edges.add(new CallGraphResult.Edge(caller, samMethod));
+    addResolvedTarget(caller, samMethod, state);
 
-    // Edge 2: synthetic.SAM -> impl method (SAM delegates to lambda body)
     MethodSignature implMethod = new MethodSignature(
         lambda.getImplOwner(), lambda.getImplName(), lambda.getImplDescriptor());
-    edges.add(new CallGraphResult.Edge(samMethod, implMethod));
-
-    // Add impl method to worklist so its call sites are also analyzed
-    if (!reachable.contains(implMethod)) {
-      worklist.add(implMethod);
-    }
+    addResolvedTarget(samMethod, implMethod, state);
   }
 
   /**
@@ -405,16 +444,13 @@ public final class AsmCallGraphBuilder {
    * Format: wala/lambda$owner_with_slashes_as_dollars$index
    */
   private String generateLambdaClassName(String ownerClass) {
-    int index = lambdaCounters.merge(ownerClass, 0, (old, v) -> old + 1);
+    int index = lambdaCounters.merge(ownerClass, 0, (old, value) -> old + 1);
     String encodedOwner = ownerClass.replace('/', '$');
     return LAMBDA_CLASS_PREFIX + encodedOwner + "$" + index;
   }
 
   /**
    * Extracts the functional interface class name from the invokedynamic descriptor's return type.
-   * The return type of the indy descriptor is always the functional interface type.
-   *
-   * @return the functional interface internal name, or null if it cannot be determined
    */
   private String extractFunctionalInterface(LambdaCallSite lambda) {
     String indyDesc = lambda.getIndyDescriptor();
@@ -422,19 +458,26 @@ public final class AsmCallGraphBuilder {
       return null;
     }
 
-    // Return type starts after the closing ')' in the descriptor
     int closeParenIndex = indyDesc.lastIndexOf(')');
     if (closeParenIndex < 0 || closeParenIndex + 1 >= indyDesc.length()) {
       return null;
     }
 
     String returnType = indyDesc.substring(closeParenIndex + 1);
-    // Object type format: Lpackage/ClassName;
     if (returnType.startsWith("L") && returnType.endsWith(";")) {
       return returnType.substring(1, returnType.length() - 1);
     }
 
     return null;
+  }
+
+  /**
+   * Returns true for the special clone() dispatch that WALA keeps only as an edge.
+   */
+  private boolean isCloneMethod(MethodSignature method) {
+    return method.getOwner().equals("java/lang/Object")
+        && method.getName().equals("clone")
+        && method.getDescriptor().equals("()Ljava/lang/Object;");
   }
 
   /**
@@ -450,10 +493,6 @@ public final class AsmCallGraphBuilder {
           if (entry.getName().endsWith(".class")) {
             try (InputStream is = jar.getInputStream(entry)) {
               byte[] bytes = is.readAllBytes();
-              String className = entry.getName()
-                  .replace(".class", "")
-                  .replace("/", "/"); // Keep internal format
-              // Extract actual class name from the bytecode
               try {
                 ClassReader reader = new ClassReader(bytes);
                 bytecodeMap.put(reader.getClassName(), bytes);
@@ -477,19 +516,16 @@ public final class AsmCallGraphBuilder {
       ClassInfo sourceClass = hierarchy.getClass(edge.getSource().getOwner());
       ClassInfo targetClass = hierarchy.getClass(edge.getTarget().getOwner());
 
-      // Skip if either class is not found or is Primordial
       boolean sourceIsPrimordial = sourceClass != null
           && sourceClass.getLoaderType() == ClassLoaderType.PRIMORDIAL;
       boolean targetIsPrimordial = targetClass != null
           && targetClass.getLoaderType() == ClassLoaderType.PRIMORDIAL;
 
-      // Also handle synthetic boot method
       boolean sourceIsBoot = edge.getSource().getOwner().equals("<boot>");
 
       if (!sourceIsPrimordial && !targetIsPrimordial && !sourceIsBoot) {
         filtered.add(edge);
       } else if (sourceIsBoot && !targetIsPrimordial) {
-        // Keep boot -> non-primordial edges
         filtered.add(edge);
       }
     }
@@ -511,26 +547,94 @@ public final class AsmCallGraphBuilder {
   }
 
   /**
-   * Records a virtual/interface call site and its caller for fixed-point re-resolution.
+   * Mutable state for the RTA worklist.
    */
-  private static class VirtualCallRecord {
-    final MethodSignature caller;
-    final CallSite callSite;
+  private static final class RtaState {
+    private final Set<MethodSignature> reachable = new HashSet<>();
+    private final Set<CallGraphResult.Edge> edges = new HashSet<>();
+    private final Deque<MethodSignature> methodQueue = new ArrayDeque<>();
+    private final Set<String> allocatedTypes = new HashSet<>();
+    private final Set<String> processedClinits = new HashSet<>();
+    private final Map<SelectorKey, Set<String>> selectorToReceiverTypes = new HashMap<>();
+    private final Map<SelectorKey, List<VirtualCallUse>> virtualCallIndex = new HashMap<>();
+    private final Deque<ReceiverEvent> receiverEvents = new ArrayDeque<>();
+  }
 
-    VirtualCallRecord(MethodSignature caller, CallSite callSite) {
+  /**
+   * Records that a selector bucket gained a new concrete receiver type.
+   */
+  private static final class ReceiverEvent {
+    private final SelectorKey selector;
+    private final String concreteType;
+
+    ReceiverEvent(SelectorKey selector, String concreteType) {
+      this.selector = selector;
+      this.concreteType = concreteType;
+    }
+  }
+
+  /**
+   * Tracks which receiver types have already been processed for a virtual call site.
+   */
+  private static final class VirtualCallUse {
+    private final MethodSignature caller;
+    private final CallSite callSite;
+    private final Set<String> processedTypes = new HashSet<>();
+
+    VirtualCallUse(MethodSignature caller, CallSite callSite) {
       this.caller = caller;
       this.callSite = callSite;
     }
   }
 
   /**
-   * ClassVisitor that extracts call sites and instantiated types from a specific method.
+   * Selector identity used by the WALA-style receiver buckets.
+   */
+  private static final class SelectorKey {
+    private final String name;
+    private final String descriptor;
+
+    private SelectorKey(String name, String descriptor) {
+      this.name = name;
+      this.descriptor = descriptor;
+    }
+
+    static SelectorKey from(CallSite callSite) {
+      return new SelectorKey(callSite.getName(), callSite.getDescriptor());
+    }
+
+    static SelectorKey from(MethodSignature method) {
+      return new SelectorKey(method.getName(), method.getDescriptor());
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (this == other) {
+        return true;
+      }
+      if (!(other instanceof SelectorKey)) {
+        return false;
+      }
+      SelectorKey that = (SelectorKey) other;
+      return Objects.equals(name, that.name)
+          && Objects.equals(descriptor, that.descriptor);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(name, descriptor);
+    }
+  }
+
+  /**
+   * ClassVisitor that extracts call sites and allocations from a specific method.
    */
   private static class MethodAnalysisVisitor extends ClassVisitor {
     private final String targetMethodName;
     private final String targetDescriptor;
     private List<CallSite> callSites = List.of();
     private Set<String> instantiatedTypes = Set.of();
+    private Set<String> staticFieldOwners = Set.of();
     private List<LambdaCallSite> lambdaCallSites = List.of();
 
     MethodAnalysisVisitor(String methodName, String descriptor) {
@@ -546,6 +650,7 @@ public final class AsmCallGraphBuilder {
         CallSiteExtractor extractor = new CallSiteExtractor();
         callSites = extractor.getCallSites();
         instantiatedTypes = extractor.getInstantiatedTypes();
+        staticFieldOwners = extractor.getStaticFieldOwners();
         lambdaCallSites = extractor.getLambdaCallSites();
         return extractor;
       }
@@ -553,7 +658,8 @@ public final class AsmCallGraphBuilder {
     }
 
     MethodAnalysisResult getResult() {
-      return new MethodAnalysisResult(callSites, instantiatedTypes, lambdaCallSites);
+      return new MethodAnalysisResult(
+          callSites, instantiatedTypes, staticFieldOwners, lambdaCallSites);
     }
   }
 }
