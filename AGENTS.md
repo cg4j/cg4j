@@ -242,7 +242,7 @@ git commit -m "<type>: <description>"
 
 ### Rules
 
-- **Never push to `main` or `master`**
+- **Never commit or push to `main` or `master`; create a feature branch before starting any fix or feature work**
 - Don't commit secrets or generated files
 - Run tests before committing: `mvn test`
 - Keep commits atomic
