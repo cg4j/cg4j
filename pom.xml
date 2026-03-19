@@ -6,7 +6,7 @@
 
     <groupId>net.cg4j</groupId>
     <artifactId>cg4j</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <name>cg4j</name>
     <packaging>jar</packaging>
 
