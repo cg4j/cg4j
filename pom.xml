@@ -10,8 +10,23 @@
     <name>cg4j</name>
     <packaging>jar</packaging>
 
-    <description>Call Graph Generator for Java using IBM WALA - 0-CFA analysis with CHA</description>
+    <description>CG4j: Call Graph Generation for Java</description>
     <url>https://cg4j.net</url>
+
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:git://github.com/cg4j/cg4j.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/cg4j/cg4j.git</developerConnection>
+        <url>https://github.com/cg4j/cg4j/tree/main</url>
+        <tag>HEAD</tag>
+    </scm>
 
     <developers>
         <developer>
