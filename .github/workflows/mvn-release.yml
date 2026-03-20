@@ -24,9 +24,10 @@ jobs:
           cache: maven
 
       - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
-          gpg --list-secret-keys --keyid-format LONG
+          printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
 
       - name: Create Maven settings.xml
         run: |

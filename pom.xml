@@ -252,6 +252,8 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <bestPractices>true</bestPractices>
+                    <passphraseEnvName>MAVEN_GPG_PASSPHRASE</passphraseEnvName>
                     <gpgArguments>
                         <arg>--pinentry-mode</arg>
                         <arg>loopback</arg>
