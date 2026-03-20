@@ -199,6 +199,7 @@
                     <mainClass>net.cg4j.Main</mainClass>
                 </configuration>
             </plugin>
+            <!-- Publishes release artifacts to Maven Central via Sonatype Central Portal. -->
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
@@ -208,6 +209,7 @@
                     <publishingServerId>central</publishingServerId>
                 </configuration>
             </plugin>
+            <!-- Attaches a sources JAR to the Maven package for publication. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
@@ -221,6 +223,7 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- Attaches a Javadoc JAR so API docs are published with releases. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -234,6 +237,7 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- Signs release artifacts with GPG during the verify phase. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
