@@ -32,11 +32,14 @@ jobs:
       - name: Create Maven settings.xml
         run: |
           mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml <<'EOF'
-          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-                                        https://maven.apache.org/xsd/settings-1.0.0.xsd">
+          python - <<'PY'
+          from pathlib import Path
+
+          Path.home().joinpath('.m2', 'settings.xml').write_text(
+              """<settings xmlns=\"http://maven.apache.org/SETTINGS/1.0.0\"
+          xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"
+          xsi:schemaLocation=\"http://maven.apache.org/SETTINGS/1.0.0
+                              https://maven.apache.org/xsd/settings-1.0.0.xsd\">
             <servers>
               <server>
                 <id>central</id>
@@ -45,7 +48,10 @@ jobs:
               </server>
             </servers>
           </settings>
-          EOF
+          """,
+              encoding='utf-8'
+          )
+          PY
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}

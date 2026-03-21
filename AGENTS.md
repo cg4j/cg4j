@@ -8,7 +8,8 @@ This document provides coding guidelines for AI agents working on the cg4j (Call
 - **Build Tool**: Maven 3.6+
 - **Main Package**: `net.cg4j`
 - **Entry Point**: `net.cg4j.Main`
-- **Artifact**: `cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar`
+- **Artifact**: Look in `target/` for `cg4j-<version>-jar-with-dependencies.jar`, where `<version>` comes from `pom.xml` and may be a release like `x.x.x` or a snapshot like `x.x.x-SNAPSHOT`
+- **Versioning note**: Agents should read the current version from `pom.xml` instead of assuming a fixed artifact name
 - **Note**: Ignore `.venv/` folder for context/analysis (Python virtual environment), but Python/pip tools may be used to run Python scripts
 
 ## Build Commands
