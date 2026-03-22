@@ -11,9 +11,10 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout
+      - name: Checkout release tag
         uses: actions/checkout@v6.0.2
         with:
+          ref: refs/tags/${{ github.event.release.tag_name }}
           fetch-depth: 0
 
       - name: Set up JDK 21
@@ -22,49 +23,52 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
-      - name: Import GPG key
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+      - name: Resolve release version from tag
+        id: release_version
+        shell: bash
         run: |
-          printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
+          TAG="${{ github.event.release.tag_name }}"
+          RELEASE_VERSION="${TAG#v}"
 
-      - name: Create Maven settings.xml
+          if [[ -z "$RELEASE_VERSION" || "$RELEASE_VERSION" == "$TAG" && "$TAG" == v* ]]; then
+            echo "Failed to resolve release version from tag: $TAG"
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Show current pom version
+        shell: bash
         run: |
-          mkdir -p ~/.m2
-          python - <<'PY'
-          from pathlib import Path
+          POM_VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+          echo "Release tag: ${{ steps.release_version.outputs.tag }}"
+          echo "Release version: ${{ steps.release_version.outputs.release_version }}"
+          echo "Current pom.xml version before override: $POM_VERSION"
 
-          Path.home().joinpath('.m2', 'settings.xml').write_text(
-              """<settings xmlns=\"http://maven.apache.org/SETTINGS/1.0.0\"
-          xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"
-          xsi:schemaLocation=\"http://maven.apache.org/SETTINGS/1.0.0
-                              https://maven.apache.org/xsd/settings-1.0.0.xsd\">
-            <servers>
-              <server>
-                <id>central</id>
-                <username>${env.CENTRAL_USERNAME}</username>
-                <password>${env.CENTRAL_PASSWORD}</password>
-              </server>
-            </servers>
-          </settings>
-          """,
-              encoding='utf-8'
-          )
-          PY
+      - name: Set project version to release version
+        shell: bash
+        run: |
+          mvn -B -ntp versions:set \
+            -DnewVersion="${{ steps.release_version.outputs.release_version }}" \
+            -DgenerateBackupPoms=false
+
+      - name: Verify effective project version
+        shell: bash
+        run: |
+          POM_VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+          echo "Effective pom.xml version after override: $POM_VERSION"
+          test "$POM_VERSION" = "${{ steps.release_version.outputs.release_version }}"
+
+      - name: Publish to Maven Central
+        run: mvn -B -ntp -Prelease clean deploy
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
-
-      - name: Verify tag matches pom version
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          POM_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "Tag version: $TAG"
-          echo "POM version: $POM_VERSION"
-          test "$TAG" = "$POM_VERSION"
-
-      - name: Publish to Maven Central
-        run: mvn -B -Prelease clean deploy
-        env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
