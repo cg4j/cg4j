@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-## [v0.1.0] - 2026-03-19
+## [v0.1.0] - 2026-03-22
 
 ### Added
 - Dual call graph engine: IBM WALA RTA and custom ASM-based RTA algorithm
