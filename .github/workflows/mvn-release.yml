@@ -11,7 +11,7 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout
+      - name: Checkout release tag
         uses: actions/checkout@v6.0.2
         with:
           ref: refs/tags/${{ github.event.release.tag_name }}
@@ -29,32 +29,45 @@ jobs:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
-      - name: Resolve release version
+      - name: Resolve release version from tag
         id: release_version
         shell: bash
         run: |
           TAG="${{ github.event.release.tag_name }}"
           RELEASE_VERSION="${TAG#v}"
+
+          if [[ -z "$RELEASE_VERSION" || "$RELEASE_VERSION" == "$TAG" && "$TAG" == v* ]]; then
+            echo "Failed to resolve release version from tag: $TAG"
+            exit 1
+          fi
+
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Verify tag matches pom version
+      - name: Show current pom version
         shell: bash
         run: |
-          TAG="${{ steps.release_version.outputs.tag }}"
-          RELEASE_VERSION="${{ steps.release_version.outputs.release_version }}"
-          POM_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "Tag version: $TAG"
-          echo "Normalized tag version: $RELEASE_VERSION"
-          echo "POM version: $POM_VERSION"
-          test "$RELEASE_VERSION" = "${POM_VERSION%-SNAPSHOT}"
+          POM_VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+          echo "Release tag: ${{ steps.release_version.outputs.tag }}"
+          echo "Release version: ${{ steps.release_version.outputs.release_version }}"
+          echo "Current pom.xml version before override: $POM_VERSION"
 
-      - name: Set version
+      - name: Set project version to release version
         shell: bash
-        run: mvn versions:set -DnewVersion="${{ steps.release_version.outputs.release_version }}" -DgenerateBackupPoms=false
+        run: |
+          mvn -B -ntp versions:set \
+            -DnewVersion="${{ steps.release_version.outputs.release_version }}" \
+            -DgenerateBackupPoms=false
+
+      - name: Verify effective project version
+        shell: bash
+        run: |
+          POM_VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+          echo "Effective pom.xml version after override: $POM_VERSION"
+          test "$POM_VERSION" = "${{ steps.release_version.outputs.release_version }}"
 
       - name: Publish to Maven Central
-        run: mvn -B -Prelease clean deploy
+        run: mvn -B -ntp -Prelease clean deploy
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
