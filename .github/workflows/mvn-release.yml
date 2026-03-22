@@ -22,39 +22,11 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-
-      - name: Import GPG key
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-        run: |
-          printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
-
-      - name: Create Maven settings.xml
-        run: |
-          mkdir -p ~/.m2
-          python - <<'PY'
-          from pathlib import Path
-
-          Path.home().joinpath('.m2', 'settings.xml').write_text(
-              """<settings xmlns=\"http://maven.apache.org/SETTINGS/1.0.0\"
-          xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"
-          xsi:schemaLocation=\"http://maven.apache.org/SETTINGS/1.0.0
-                              https://maven.apache.org/xsd/settings-1.0.0.xsd\">
-            <servers>
-              <server>
-                <id>central</id>
-                <username>${env.CENTRAL_USERNAME}</username>
-                <password>${env.CENTRAL_PASSWORD}</password>
-              </server>
-            </servers>
-          </settings>
-          """,
-              encoding='utf-8'
-          )
-          PY
-        env:
-          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
-          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
       - name: Verify tag matches pom version
         run: |
@@ -64,7 +36,13 @@ jobs:
           echo "POM version: $POM_VERSION"
           test "$TAG" = "$POM_VERSION"
 
+      - name: Set version
+        shell: bash
+        run: mvn versions:set -DnewVersion=${GITHUB_REF_NAME#v}
+
       - name: Publish to Maven Central
         run: mvn -B -Prelease clean deploy
         env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
