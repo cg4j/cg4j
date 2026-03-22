@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [v0.1.0] - 2026-03-22
+
+### Added
 - Dual call graph engine: IBM WALA RTA and custom ASM-based RTA algorithm
 - Call graph generation from JAR files using Rapid Type Analysis (RTA)
 - CSV output format with caller-callee method pairs
