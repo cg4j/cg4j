@@ -10,8 +10,8 @@ A command-line tool to build call graphs for Java programs.
 
 - [Features](#features)
 - [Requirements](#requirements)
-- [Build](#build)
-- [Installation](#installation)
+- [Quickstart](#quickstart)
+- [Development](#development)
 - [Docker](#docker)
 - [Usage](#usage)
 - [Output Format](#output-format)
@@ -30,12 +30,29 @@ A command-line tool to build call graphs for Java programs.
 ## Requirements
 
 - Java 11 or higher
-- Maven 3.6 or higher
+- Maven 3.6 or higher (for building from source)
 - Docker (optional, for containerized usage)
 
-## Build
+## Quickstart
 
-Using Make:
+Install `cg4j` for the current user:
+
+```bash
+curl -fsSL https://cg4j.net/install.sh | bash
+```
+
+> Note: If `cg4j` is already installed, `install.sh` will prompt to uninstall the current installation and then exit. Run the installer again if you want to reinstall `cg4j`.
+
+Verify installation:
+
+```bash
+cg4j --help
+```
+
+## Development
+
+Build from source using Make:
+
 ```bash
 make build
 ```
@@ -47,28 +64,13 @@ mvn clean package
 
 This creates `target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar`
 
-## Installation
-
-### Quick Install
-
-Install cg4j as a system-wide command:
+Install cg4j from the local source tree:
 
 ```bash
 make install
 ```
 
-This will:
-- Check for Java 11+ and Maven 3.6+
-- Build the project with full Maven output
-- Install `cg4j` command to `~/.local/bin/`
-- Make it available from anywhere in your terminal
-
-**Verify installation:**
-```bash
-cg4j --help
-```
-
-### Uninstall
+Uninstall the local development install:
 
 ```bash
 make uninstall
@@ -125,15 +127,6 @@ cg4j -j myapp.jar
 
 # With dependencies and custom output
 cg4j -j myapp.jar -o output.csv -d lib/
-```
-
-Or run directly from JAR without installation:
-```bash
-# Basic usage - outputs to callgraph.csv
-java -jar target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar -j myapp.jar
-
-# With dependencies and custom output
-java -jar target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar -j myapp.jar -o output.csv -d lib/
 ```
 
 **Options:**
