@@ -19,6 +19,7 @@ theme:
   features:
     - navigation.tabs
     - navigation.tabs.sticky
+    - content.code.copy
 
 copyright: Copyright &copy; 2026
 
