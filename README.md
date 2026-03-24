@@ -15,7 +15,6 @@ A command-line tool to build call graphs for Java programs.
 - [Docker](#docker)
 - [Development](#development)
 - [Output Format](#output-format)
-- [Testing](#testing)
 - [Documentation](#documentation)
 - [License](#license)
 
@@ -146,22 +145,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 Then restart your terminal or run `source ~/.bashrc`.
 
-## Output Format
-
-CSV file with two columns:
-```
-source_method,target_method
-package/Class.method:(descriptor),package/Class.method:(descriptor)
-```
-
-Example:
-```
-source_method,target_method
-<boot>,org/slf4j/Logger.info:(Ljava/lang/String;)V
-org/slf4j/Logger.info:(Ljava/lang/String;)V,org/slf4j/helpers/MessageFormatter.format:(Ljava/lang/String;)Ljava/lang/String;
-```
-
-## Testing
+### Testing
 
 Using Make:
 ```bash
@@ -181,6 +165,21 @@ grep -oP '<tfoot>.*?<td class="ctr2">\K[0-9]+%' target/site/jacoco/index.html | 
 ```
 
 Test data: `src/test/resources/test-jars/`
+
+## Output Format
+
+CSV file with two columns:
+```
+source_method,target_method
+package/Class.method:(descriptor),package/Class.method:(descriptor)
+```
+
+Example:
+```
+source_method,target_method
+<boot>,org/slf4j/Logger.info:(Ljava/lang/String;)V
+org/slf4j/Logger.info:(Ljava/lang/String;)V,org/slf4j/helpers/MessageFormatter.format:(Ljava/lang/String;)Ljava/lang/String;
+```
 
 ## Documentation
 
