@@ -132,6 +132,16 @@ verify_sha256() {
 
 trap cleanup EXIT
 
+if is_installed; then
+  warning 'Existing cg4j installation detected'
+  confirm_reinstall
+  uninstall_existing_installation
+  success 'cg4j uninstalled successfully'
+  echo 'Run the installer again later if you want to reinstall it.'
+  echo ""
+  exit 0
+fi
+
 echo ""
 info 'Installing cg4j...'
 echo ""
@@ -155,16 +165,6 @@ info 'Checking SHA-256 verification support...'
 detect_sha256_command
 success "Using $SHA256_CMD for SHA-256 verification"
 echo ""
-
-if is_installed; then
-  warning 'Existing cg4j installation detected'
-  confirm_reinstall
-  uninstall_existing_installation
-  success 'cg4j uninstalled successfully'
-  echo 'Run the installer again later if you want to reinstall it.'
-  echo ""
-  exit 0
-fi
 
 TMP_DIR=$(mktemp -d)
 METADATA_FILE="$TMP_DIR/maven-metadata.xml"
