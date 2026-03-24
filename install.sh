@@ -16,6 +16,15 @@ INSTALL_SHARE_DIR="$HOME/.local/share/cg4j"
 INSTALL_JAR="$INSTALL_SHARE_DIR/cg4j.jar"
 INSTALL_VERSION_FILE="$INSTALL_SHARE_DIR/VERSION"
 WRAPPER_PATH="$INSTALL_BIN_DIR/cg4j"
+TAGLINE='CG4j: Call Graph Generation for Java'
+LOGO_LINES=(
+  '   ______________ __  _ '
+  '  / ____/ ____/ // / (_)' 
+  ' / /   / / __/ // /_/ / '
+  '/ /___/ /_/ /__  __/ /  '
+  '\____/\____/  /_/_/ /   '
+  '               /___/    '
+)
 
 success() {
   echo -e "${GREEN}✓${NC} $1"
@@ -32,6 +41,57 @@ warning() {
 
 info() {
   echo -e "${BLUE}ℹ${NC} $1"
+}
+
+repeat_char() {
+  local char="$1"
+  local count="$2"
+  local result
+
+  printf -v result '%*s' "$count" ''
+  printf '%s\n' "${result// /$char}"
+}
+
+center_text() {
+  local text="$1"
+  local width="$2"
+  local text_length left_padding right_padding
+
+  text_length=${#text}
+  if [ "$text_length" -ge "$width" ]; then
+    printf '%s\n' "$text"
+    return
+  fi
+
+  left_padding=$(((width - text_length) / 2))
+  right_padding=$((width - text_length - left_padding))
+  printf '%*s%s%*s\n' "$left_padding" '' "$text" "$right_padding" ''
+}
+
+print_banner() {
+  local logo_width box_inner_width box_outer_width logo_padding logo_indent border line centered_tagline
+
+  logo_width=${#LOGO_LINES[0]}
+  box_inner_width=$((${#TAGLINE} + 4))
+  box_outer_width=$((box_inner_width + 2))
+  logo_padding=$(((box_outer_width - logo_width) / 2))
+
+  if [ "$logo_padding" -lt 0 ]; then
+    logo_padding=0
+  fi
+
+  printf -v logo_indent '%*s' "$logo_padding" ''
+  border="+$(repeat_char '-' "$box_inner_width" | tr -d '\n')+"
+  centered_tagline=$(center_text "$TAGLINE" "$box_inner_width" | tr -d '\n')
+
+  echo ""
+  for line in "${LOGO_LINES[@]}"; do
+    printf '%s%s\n' "$logo_indent" "$line"
+  done
+  printf '%s\n' "$border"
+  printf '|%s|\n' "$centered_tagline"
+  printf '%s\n' "$border"
+  echo ""
 }
 
 cleanup() {
@@ -132,6 +192,8 @@ verify_sha256() {
 
 trap cleanup EXIT
 
+print_banner
+
 if is_installed; then
   warning 'Existing cg4j installation detected'
   confirm_reinstall
@@ -142,7 +204,6 @@ if is_installed; then
   exit 0
 fi
 
-echo ""
 info 'Installing cg4j...'
 echo ""
 
@@ -186,7 +247,7 @@ CHECKSUM_URL="$ARTIFACT_URL.sha256"
 DOWNLOAD_JAR="$TMP_DIR/$ARTIFACT_NAME"
 DOWNLOAD_SHA="$TMP_DIR/$ARTIFACT_NAME.sha256"
 
-info "Downloading $ARTIFACT_NAME..."
+info 'Downloading cg4j release...'
 curl -fsSL "$ARTIFACT_URL" -o "$DOWNLOAD_JAR" || error 'Failed to download cg4j JAR.'
 curl -fsSL "$CHECKSUM_URL" -o "$DOWNLOAD_SHA" || error 'Failed to download cg4j SHA-256 checksum.'
 success 'Download completed'
