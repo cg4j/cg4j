@@ -22,12 +22,12 @@ test:
 	mvn test
 
 install:
-	@chmod +x scripts/install.sh
-	./scripts/install.sh
+	@chmod +x scripts/make-install.sh
+	./scripts/make-install.sh
 
 uninstall:
-	@chmod +x scripts/uninstall.sh
-	@./scripts/uninstall.sh
+	@chmod +x scripts/make-uninstall.sh
+	@./scripts/make-uninstall.sh
 
 clean:
 	mvn clean

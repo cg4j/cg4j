@@ -10,12 +10,11 @@ A command-line tool to build call graphs for Java programs.
 
 - [Features](#features)
 - [Requirements](#requirements)
-- [Build](#build)
-- [Installation](#installation)
-- [Docker](#docker)
+- [Quickstart](#quickstart)
 - [Usage](#usage)
+- [Docker](#docker)
+- [Development](#development)
 - [Output Format](#output-format)
-- [Testing](#testing)
 - [Documentation](#documentation)
 - [License](#license)
 
@@ -30,58 +29,52 @@ A command-line tool to build call graphs for Java programs.
 ## Requirements
 
 - Java 11 or higher
-- Maven 3.6 or higher
+- Maven 3.6 or higher (for building from source)
 - Docker (optional, for containerized usage)
 
-## Build
+## Quickstart
 
-Using Make:
-```bash
-make build
-```
-
-Or using Maven directly:
-```bash
-mvn clean package
-```
-
-This creates `target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar`
-
-## Installation
-
-### Quick Install
-
-Install cg4j as a system-wide command:
+Install `cg4j` for the current user on Linux, macOS, or WSL. No `sudo` access is required.
 
 ```bash
-make install
+curl -fsSL https://cg4j.net/install.sh | bash
 ```
 
-This will:
-- Check for Java 11+ and Maven 3.6+
-- Build the project with full Maven output
-- Install `cg4j` command to `~/.local/bin/`
-- Make it available from anywhere in your terminal
+> Note: If `cg4j` is already installed, `install.sh` will prompt to uninstall the current installation and then exit. Run the installer again if you want to reinstall `cg4j`.
 
-**Verify installation:**
+Verify installation:
+
 ```bash
 cg4j --help
 ```
 
-### Uninstall
+## Usage
 
+After installation:
 ```bash
-make uninstall
+# Basic usage - outputs to callgraph.csv
+cg4j -j myapp.jar
+
+# With dependencies and custom output
+cg4j -j myapp.jar -o output.csv -d lib/
+
+# Use the ASM engine
+cg4j -j myapp.jar --engine asm
+
+# Suppress info/progress logs
+cg4j -j myapp.jar -q
 ```
 
-**Note:** If `cg4j` command is not found after installation, ensure `~/.local/bin` is in your PATH:
-
-```bash
-# Add to ~/.bashrc or ~/.zshrc
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-Then restart your terminal or run `source ~/.bashrc`.
+**Options:**
+- `-j, --app-jar=<file>` - JAR file to analyze (required)
+- `-o, --output=<file>` - Output CSV file (default: `callgraph.csv`)
+- `-d, --deps=<dir>` - Directory containing dependency JAR files
+- `--include-rt` - Include Java runtime in call graph analysis (default: `true`)
+- `--engine` - Call graph engine: `wala` or `asm` (default: `wala`)
+- `--exclusions` - Exclusion patterns file for the ASM engine; see [`default-exclusions.txt`](src/main/resources/default-exclusions.txt)
+- `-q, --quiet` - Suppress info/progress logs (errors only)
+- `-h, --help` - Show help message
+- `-V, --version` - Show version information
 
 ## Docker
 
@@ -116,48 +109,43 @@ Default configuration (`.env`):
 - Input: `./src/test/resources/test-jars`
 - Output: `/tmp/cg4j-output`
 
-## Usage
+## Development
 
-After installation:
+Build from source using Make:
+
 ```bash
-# Basic usage - outputs to callgraph.csv
-cg4j -j myapp.jar
-
-# With dependencies and custom output
-cg4j -j myapp.jar -o output.csv -d lib/
+make build
 ```
 
-Or run directly from JAR without installation:
+Or using Maven directly:
 ```bash
-# Basic usage - outputs to callgraph.csv
-java -jar target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar -j myapp.jar
-
-# With dependencies and custom output
-java -jar target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar -j myapp.jar -o output.csv -d lib/
+mvn clean package
 ```
 
-**Options:**
-- `-j, --app-jar=<file>` - JAR file to analyze (required)
-- `-o, --output=<file>` - Output CSV file (default: callgraph.csv)
-- `-d, --deps=<dir>` - Directory containing dependency JAR files
-- `-h, --help` - Show help message
+This creates `target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar`
 
-## Output Format
+Install cg4j from the local source tree:
 
-CSV file with two columns:
-```
-source_method,target_method
-package/Class.method:(descriptor),package/Class.method:(descriptor)
+```bash
+make install
 ```
 
-Example:
-```
-source_method,target_method
-<boot>,org/slf4j/Logger.info:(Ljava/lang/String;)V
-org/slf4j/Logger.info:(Ljava/lang/String;)V,org/slf4j/helpers/MessageFormatter.format:(Ljava/lang/String;)Ljava/lang/String;
+Uninstall the local development install:
+
+```bash
+make uninstall
 ```
 
-## Testing
+**Note:** If `cg4j` command is not found after installation, ensure `~/.local/bin` is in your PATH:
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Then restart your terminal or run `source ~/.bashrc`.
+
+### Testing
 
 Using Make:
 ```bash
@@ -177,6 +165,21 @@ grep -oP '<tfoot>.*?<td class="ctr2">\K[0-9]+%' target/site/jacoco/index.html | 
 ```
 
 Test data: `src/test/resources/test-jars/`
+
+## Output Format
+
+CSV file with two columns:
+```
+source_method,target_method
+package/Class.method:(descriptor),package/Class.method:(descriptor)
+```
+
+Example:
+```
+source_method,target_method
+<boot>,org/slf4j/Logger.info:(Ljava/lang/String;)V
+org/slf4j/Logger.info:(Ljava/lang/String;)V,org/slf4j/helpers/MessageFormatter.format:(Ljava/lang/String;)Ljava/lang/String;
+```
 
 ## Documentation
 
