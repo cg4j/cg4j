@@ -26,6 +26,30 @@ info() {
   echo -e "${BLUE}ℹ${NC} $1"
 }
 
+get_java_major_version() {
+  local version="$1"
+  local dot_index dash_index
+
+  if [[ "$version" == 1.* ]]; then
+    printf '%s\n' "$version" | awk -F. '{print $2}'
+    return
+  fi
+
+  dot_index=${version%%.*}
+  if [ "$dot_index" != "$version" ]; then
+    printf '%s\n' "$dot_index"
+    return
+  fi
+
+  dash_index=${version%%-*}
+  if [ "$dash_index" != "$version" ]; then
+    printf '%s\n' "$dash_index"
+    return
+  fi
+
+  printf '%s\n' "$version"
+}
+
 # Start installation
 echo ""
 info "Installing cg4j..."
@@ -39,12 +63,7 @@ fi
 
 # Extract Java version
 JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
-JAVA_MAJOR_VERSION=$(echo "$JAVA_VERSION" | awk -F. '{print $1}')
-
-# Handle Java version format (1.8.x becomes 8, 11.x becomes 11, etc.)
-if [ "$JAVA_MAJOR_VERSION" = "1" ]; then
-  JAVA_MAJOR_VERSION=$(echo "$JAVA_VERSION" | awk -F. '{print $2}')
-fi
+JAVA_MAJOR_VERSION=$(get_java_major_version "$JAVA_VERSION")
 
 if [ "$JAVA_MAJOR_VERSION" -lt 11 ]; then
   error "Java $JAVA_VERSION found, but Java 11 or higher is required."
