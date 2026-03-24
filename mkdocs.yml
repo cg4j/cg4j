@@ -5,6 +5,7 @@ repo_name: cg4j/cg4j
 
 nav:
   - Home: index.md
+  - Quickstart: quickstart.md
   - Architecture: architecture.md
   - Call Graphs Basics: callgraph-basics.md
 
