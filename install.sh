@@ -52,7 +52,7 @@ confirm_reinstall() {
   fi
 
   while true; do
-    printf 'cg4j is already installed. Uninstall the existing version and continue? (y/n) ' > /dev/tty
+    printf 'cg4j is already installed. Uninstall it now? (y/n) ' > /dev/tty
     read -r answer < /dev/tty
     case "$answer" in
       y|Y|yes|YES|Yes)
@@ -160,6 +160,10 @@ if is_installed; then
   warning 'Existing cg4j installation detected'
   confirm_reinstall
   uninstall_existing_installation
+  success 'cg4j uninstalled successfully'
+  echo 'Run the installer again later if you want to reinstall it.'
+  echo ""
+  exit 0
 fi
 
 TMP_DIR=$(mktemp -d)
