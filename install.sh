@@ -40,6 +40,42 @@ cleanup() {
   fi
 }
 
+is_installed() {
+  [ -f "$WRAPPER_PATH" ] || [ -d "$INSTALL_SHARE_DIR" ]
+}
+
+confirm_reinstall() {
+  local answer
+
+  if [ ! -r /dev/tty ]; then
+    error 'Existing cg4j install found, but confirmation is required and no terminal is available.'
+  fi
+
+  while true; do
+    printf 'cg4j is already installed. Uninstall the existing version and continue? (y/n) ' > /dev/tty
+    read -r answer < /dev/tty
+    case "$answer" in
+      y|Y|yes|YES|Yes)
+        return 0
+        ;;
+      n|N|no|NO|No)
+        error 'Installation aborted by user.'
+        ;;
+      *)
+        printf 'Please answer y or n.\n' > /dev/tty
+        ;;
+    esac
+  done
+}
+
+uninstall_existing_installation() {
+  info 'Removing existing cg4j installation...'
+  rm -f "$WRAPPER_PATH"
+  rm -rf "$INSTALL_SHARE_DIR"
+  success 'Removed existing cg4j installation'
+  echo ""
+}
+
 extract_release_version() {
   sed -n 's:.*<release>\([^<][^<]*\)</release>.*:\1:p' "$1" | head -n 1
 }
@@ -119,6 +155,12 @@ info 'Checking SHA-256 verification support...'
 detect_sha256_command
 success "Using $SHA256_CMD for SHA-256 verification"
 echo ""
+
+if is_installed; then
+  warning 'Existing cg4j installation detected'
+  confirm_reinstall
+  uninstall_existing_installation
+fi
 
 TMP_DIR=$(mktemp -d)
 METADATA_FILE="$TMP_DIR/maven-metadata.xml"
