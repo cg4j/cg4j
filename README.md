@@ -11,9 +11,9 @@ A command-line tool to build call graphs for Java programs.
 - [Features](#features)
 - [Requirements](#requirements)
 - [Quickstart](#quickstart)
-- [Development](#development)
-- [Docker](#docker)
 - [Usage](#usage)
+- [Docker](#docker)
+- [Development](#development)
 - [Output Format](#output-format)
 - [Testing](#testing)
 - [Documentation](#documentation)
@@ -35,7 +35,7 @@ A command-line tool to build call graphs for Java programs.
 
 ## Quickstart
 
-Install `cg4j` for the current user:
+Install `cg4j` for the current user on Linux, macOS, or WSL. No `sudo` access is required.
 
 ```bash
 curl -fsSL https://cg4j.net/install.sh | bash
@@ -48,6 +48,67 @@ Verify installation:
 ```bash
 cg4j --help
 ```
+
+## Usage
+
+After installation:
+```bash
+# Basic usage - outputs to callgraph.csv
+cg4j -j myapp.jar
+
+# With dependencies and custom output
+cg4j -j myapp.jar -o output.csv -d lib/
+
+# Use the ASM engine
+cg4j -j myapp.jar --engine asm
+
+# Suppress info/progress logs
+cg4j -j myapp.jar -q
+```
+
+**Options:**
+- `-j, --app-jar=<file>` - JAR file to analyze (required)
+- `-o, --output=<file>` - Output CSV file (default: `callgraph.csv`)
+- `-d, --deps=<dir>` - Directory containing dependency JAR files
+- `--include-rt` - Include Java runtime in call graph analysis (default: `true`)
+- `--engine` - Call graph engine: `wala` or `asm` (default: `wala`)
+- `--exclusions` - Exclusion patterns file for the ASM engine; see [`default-exclusions.txt`](src/main/resources/default-exclusions.txt)
+- `-q, --quiet` - Suppress info/progress logs (errors only)
+- `-h, --help` - Show help message
+- `-V, --version` - Show version information
+
+## Docker
+
+### Build and Run
+
+```bash
+# Build image
+docker build -t cg4j:latest .
+
+# Run analysis
+docker run --rm \
+  -v $(pwd):/input:ro \
+  -v $(pwd):/output \
+  cg4j:latest -j /input/myapp.jar -o /output/callgraph.csv
+```
+
+### Docker Compose
+
+```bash
+# Configure paths (first time only)
+cp .env.example .env
+# Edit .env to set INPUT_DIR and OUTPUT_DIR
+
+# Run analysis
+docker-compose run --rm cg4j -j /input/myapp.jar -o /output/callgraph.csv
+
+# Show help
+docker-compose run --rm cg4j --help
+```
+
+Default configuration (`.env`):
+- Input: `./src/test/resources/test-jars`
+- Output: `/tmp/cg4j-output`
 
 ## Development
 
@@ -84,56 +145,6 @@ export PATH="$HOME/.local/bin:$PATH"
 ```
 
 Then restart your terminal or run `source ~/.bashrc`.
-
-## Docker
-
-### Build and Run
-
-```bash
-# Build image
-docker build -t cg4j:latest .
-
-# Run analysis
-docker run --rm \
-  -v $(pwd):/input:ro \
-  -v $(pwd):/output \
-  cg4j:latest -j /input/myapp.jar -o /output/callgraph.csv
-```
-
-### Docker Compose
-
-```bash
-# Configure paths (first time only)
-cp .env.example .env
-# Edit .env to set INPUT_DIR and OUTPUT_DIR
-
-# Run analysis
-docker-compose run --rm cg4j -j /input/myapp.jar -o /output/callgraph.csv
-
-# Show help
-docker-compose run --rm cg4j --help
-```
-
-Default configuration (`.env`):
-- Input: `./src/test/resources/test-jars`
-- Output: `/tmp/cg4j-output`
-
-## Usage
-
-After installation:
-```bash
-# Basic usage - outputs to callgraph.csv
-cg4j -j myapp.jar
-
-# With dependencies and custom output
-cg4j -j myapp.jar -o output.csv -d lib/
-```
-
-**Options:**
-- `-j, --app-jar=<file>` - JAR file to analyze (required)
-- `-o, --output=<file>` - Output CSV file (default: callgraph.csv)
-- `-d, --deps=<dir>` - Directory containing dependency JAR files
-- `-h, --help` - Show help message
 
 ## Output Format
 
