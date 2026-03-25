@@ -5,9 +5,9 @@
 # CG4j - Call Graph Generation for Java
 
 <p align="center">
-  <a href="https://github.com/cg4j/cg4j/actions/workflows/build.yml" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/github/actions/workflow/status/cg4j/cg4j/build.yml?branch=master&label=build&style=flat-square" alt="Build"></a>
-  <a href="https://github.com/cg4j/cg4j/blob/master/LICENSE" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/github/license/cg4j/cg4j?style=flat-square" alt="License"></a>
-  <a href="https://mvnrepository.com/artifact/net.cg4j/cg4j" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/maven-central/v/net.cg4j/cg4j?label=maven&style=flat-square" alt="Maven"></a>
+  <a href="https://github.com/cg4j/cg4j/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/cg4j/cg4j/build.yml?branch=master&label=build&style=flat-square" alt="Build"></a>
+  <a href="https://github.com/cg4j/cg4j/blob/master/LICENSE"><img src="https://img.shields.io/github/license/cg4j/cg4j?style=flat-square" alt="License"></a>
+  <a href="https://mvnrepository.com/artifact/net.cg4j/cg4j"><img src="https://img.shields.io/maven-central/v/net.cg4j/cg4j?label=maven&style=flat-square" alt="Maven"></a>
 </p>
 
 A command-line tool to build call graphs for Java programs.
