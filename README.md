@@ -4,6 +4,12 @@
 
 # CG4j - Call Graph Generation for Java
 
+<p align="center">
+  <a href="https://github.com/cg4j/cg4j/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/cg4j/cg4j/build.yml?branch=master&label=build&style=flat-square" alt="Build"></a>
+  <a href="https://github.com/cg4j/cg4j/blob/master/LICENSE"><img src="https://img.shields.io/github/license/cg4j/cg4j?style=flat-square" alt="License"></a>
+  <a href="https://central.sonatype.com/artifact/net.cg4j/cg4j"><img src="https://img.shields.io/maven-central/v/net.cg4j/cg4j?label=maven&style=flat-square" alt="Maven"></a>
+</p>
+
 A command-line tool to build call graphs for Java programs.
 
 ## Table of Contents
@@ -122,7 +128,7 @@ Or using Maven directly:
 mvn clean package
 ```
 
-This creates `target/cg4j-0.1.0-SNAPSHOT-jar-with-dependencies.jar`
+This creates `target/cg4j-<version>-jar-with-dependencies.jar`
 
 Install cg4j from the local source tree:
 
