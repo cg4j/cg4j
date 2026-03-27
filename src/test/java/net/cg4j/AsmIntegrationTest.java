@@ -294,6 +294,28 @@ class AsmIntegrationTest extends BaseIntegrationTest {
   }
 
   /**
+   * Integration test: Verifies ASM keeps synthetic lambda edges for OkHttp without RT.
+   * Expects the two-hop lambda pattern to survive no-RT filtering.
+   */
+  @Test
+  void testAsmEngine_LambdaEdges_NoRT_OkHttp() throws IOException {
+    outputFile = TestUtils.createTempOutputFile();
+
+    int exitCode = TestUtils.runMain(
+        okhttpJar.getPath(),
+        "-d", okhttpDeps.getPath(),
+        "-o", outputFile.getPath(),
+        "--engine=asm",
+        "--include-rt=false"
+    );
+
+    assertThat(exitCode).isEqualTo(0);
+    assertThat(TestUtils.hasRTClasses(outputFile)).isFalse();
+
+    assertHasSyntheticLambdaEdges(TestUtils.parseCSV(outputFile));
+  }
+
+  /**
    * Integration test: Verifies ASM engine produces synthetic lambda edges for OkHttp with RT.
    * Expects edges with wala/lambda$ prefix following the two-hop pattern.
    */
@@ -311,21 +333,7 @@ class AsmIntegrationTest extends BaseIntegrationTest {
 
     assertThat(exitCode).isEqualTo(0);
 
-    List<String[]> edges = TestUtils.parseCSV(outputFile);
-
-    // Hop 1: Some caller -> wala/lambda$...
-    boolean hasLambdaTarget = edges.stream()
-        .anyMatch(e -> e[1].startsWith("wala/lambda$"));
-    assertThat(hasLambdaTarget)
-        .as("Expected edges targeting synthetic lambda classes")
-        .isTrue();
-
-    // Hop 2: wala/lambda$... -> impl method
-    boolean hasLambdaSource = edges.stream()
-        .anyMatch(e -> e[0].startsWith("wala/lambda$"));
-    assertThat(hasLambdaSource)
-        .as("Expected edges from synthetic lambda classes to impl methods")
-        .isTrue();
+    assertHasSyntheticLambdaEdges(TestUtils.parseCSV(outputFile));
   }
 
   /**
@@ -384,6 +392,22 @@ class AsmIntegrationTest extends BaseIntegrationTest {
         "--engine=invalid"
     );
     assertThat(exitCode).isEqualTo(1);
+  }
+
+  private void assertHasSyntheticLambdaEdges(List<String[]> edges) {
+    // Hop 1: Some caller -> wala/lambda$...
+    boolean hasLambdaTarget = edges.stream()
+        .anyMatch(e -> e[1].startsWith("wala/lambda$"));
+    assertThat(hasLambdaTarget)
+        .as("Expected edges targeting synthetic lambda classes")
+        .isTrue();
+
+    // Hop 2: wala/lambda$... -> impl method
+    boolean hasLambdaSource = edges.stream()
+        .anyMatch(e -> e[0].startsWith("wala/lambda$"));
+    assertThat(hasLambdaSource)
+        .as("Expected edges from synthetic lambda classes to impl methods")
+        .isTrue();
   }
 
   /**

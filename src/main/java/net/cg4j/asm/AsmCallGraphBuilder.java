@@ -564,6 +564,7 @@ public final class AsmCallGraphBuilder {
    */
   private void processLambdaCallSite(MethodSignature caller, LambdaCallSite lambda, RtaState state) {
     String syntheticName = generateLambdaClassName(caller.getOwner());
+    ClassLoaderType syntheticLoaderType = getSyntheticLambdaLoaderType(caller);
 
     MethodSignature samMethod = new MethodSignature(
         syntheticName, lambda.getSamMethodName(), lambda.getSamDescriptor(),
@@ -579,12 +580,22 @@ public final class AsmCallGraphBuilder {
         interfaces,
         Collections.singleton(samMethod),
         Opcodes.ACC_FINAL | Opcodes.ACC_SYNTHETIC,
-        ClassLoaderType.PRIMORDIAL,
+        syntheticLoaderType,
         false);
 
     hierarchy.registerSyntheticClass(syntheticClass);
     lambdaImplementations.put(samMethod, LambdaImplementation.from(lambda, hierarchy));
     handleNewAllocation(syntheticName, state);
+  }
+
+  /**
+   * Reuses the caller's loader type so synthetic lambdas are filtered like their originating code.
+   */
+  private ClassLoaderType getSyntheticLambdaLoaderType(MethodSignature caller) {
+    ClassInfo callerClass = Objects.requireNonNull(
+        hierarchy.getClass(caller.getOwner()),
+        "Expected caller class in hierarchy: " + caller.getOwner());
+    return callerClass.getLoaderType();
   }
 
   /**
