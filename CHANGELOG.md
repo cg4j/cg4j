@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Add README badges for license, build status, and Maven release visibility (#43)
+- Use lowercase `-v` as the CLI version flag (with `--version`) (#44)
 
 ### Deprecated
 

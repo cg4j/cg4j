@@ -32,12 +32,20 @@ import java.util.stream.Stream;
  * Main entry point for the call graph generation tool.
  */
 @Command(name = "cg4j",
-         mixinStandardHelpOptions = true,
+         mixinStandardHelpOptions = false,
          versionProvider = VersionProvider.class,
          description = "Builds call graphs from Java JAR files using WALA or ASM")
 public class Main implements Callable<Integer> {
 
   private static final Logger logger = LogManager.getLogger(Main.class);
+
+  @Option(names = {"-h", "--help"}, usageHelp = true,
+          description = "Show this help message and exit")
+  private boolean helpRequested;
+
+  @Option(names = {"-v", "--version"}, versionHelp = true,
+          description = "Print version information and exit")
+  private boolean versionRequested;
 
   @Option(names = {"-j", "--app-jar"},
           required = true,

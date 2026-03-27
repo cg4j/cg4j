@@ -80,7 +80,7 @@ cg4j -j myapp.jar -q
 - `--exclusions` - Exclusion patterns file for the ASM engine; see [`default-exclusions.txt`](src/main/resources/default-exclusions.txt)
 - `-q, --quiet` - Suppress info/progress logs (errors only)
 - `-h, --help` - Show help message
-- `-V, --version` - Show version information
+- `-v, --version` - Show version information
 
 ## Docker
 
