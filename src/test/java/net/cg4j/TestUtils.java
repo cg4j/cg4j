@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class TestUtils {
 
@@ -56,6 +57,15 @@ public class TestUtils {
    */
   public static int countEdges(File csvFile) throws IOException {
     return parseCSV(csvFile).size();
+  }
+
+  /**
+   * Parse CSV file and return a de-duplicated edge set.
+   */
+  public static Set<String> parseEdgeSet(File csvFile) throws IOException {
+    return parseCSV(csvFile).stream()
+        .map(edge -> edge[0] + "," + edge[1])
+        .collect(Collectors.toCollection(HashSet::new));
   }
 
   /**
@@ -138,6 +148,29 @@ public class TestUtils {
       throw new AssertionError(String.format(
           "Edge count %d not within %d±%d (%.1f%% tolerance)",
           actual, expected, tolerance, tolerancePercent));
+    }
+  }
+
+  /**
+   * Assert that ASM covers WALA's edge set within the allowed missing percentage.
+   */
+  public static void assertWalaEdgeCoverage(File walaCsv, File asmCsv, double allowedMissingPercent)
+      throws IOException {
+    Set<String> walaEdges = parseEdgeSet(walaCsv);
+    Set<String> asmEdges = parseEdgeSet(asmCsv);
+
+    Set<String> missingEdges = new HashSet<>(walaEdges);
+    missingEdges.removeAll(asmEdges);
+
+    int allowedMissing = (int) Math.ceil(walaEdges.size() * allowedMissingPercent / 100.0);
+    if (missingEdges.size() > allowedMissing) {
+      List<String> sampleMissing = missingEdges.stream()
+          .sorted()
+          .limit(10)
+          .collect(Collectors.toList());
+      throw new AssertionError(String.format(
+          "Missing %d WALA edges (allowed %d, %.2f%% tolerance). Sample: %s",
+          missingEdges.size(), allowedMissing, allowedMissingPercent, sampleMissing));
     }
   }
 }

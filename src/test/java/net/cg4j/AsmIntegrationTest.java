@@ -109,6 +109,138 @@ class AsmIntegrationTest extends BaseIntegrationTest {
   }
 
   /**
+   * Integration test: Verifies ASM fully covers WALA edges for slf4j without RT classes.
+   * Expects zero missing WALA edges in the ASM output.
+   */
+  @Test
+  void testAsmEngine_CoversWalaEdges_NoRT_Slf4j() throws IOException {
+    File walaOutput = TestUtils.createTempOutputFile();
+    File asmOutput = TestUtils.createTempOutputFile();
+
+    try {
+      int walaExitCode = TestUtils.runMain(
+          slf4jJar.getPath(),
+          "-o", walaOutput.getPath(),
+          "--engine=wala",
+          "--include-rt=false"
+      );
+      int asmExitCode = TestUtils.runMain(
+          slf4jJar.getPath(),
+          "-o", asmOutput.getPath(),
+          "--engine=asm",
+          "--include-rt=false"
+      );
+
+      assertThat(walaExitCode).isEqualTo(0);
+      assertThat(asmExitCode).isEqualTo(0);
+      TestUtils.assertWalaEdgeCoverage(walaOutput, asmOutput, 0.0);
+    } finally {
+      TestUtils.cleanupFile(walaOutput);
+      TestUtils.cleanupFile(asmOutput);
+    }
+  }
+
+  /**
+   * Integration test: Verifies ASM covers WALA edges for slf4j with RT classes enabled.
+   * Expects at most 1% of WALA edges to be missing from the ASM output.
+   */
+  @Test
+  void testAsmEngine_CoversWalaEdges_WithRT_Slf4j() throws IOException {
+    File walaOutput = TestUtils.createTempOutputFile();
+    File asmOutput = TestUtils.createTempOutputFile();
+
+    try {
+      int walaExitCode = TestUtils.runMain(
+          slf4jJar.getPath(),
+          "-o", walaOutput.getPath(),
+          "--engine=wala",
+          "--include-rt=true"
+      );
+      int asmExitCode = TestUtils.runMain(
+          slf4jJar.getPath(),
+          "-o", asmOutput.getPath(),
+          "--engine=asm",
+          "--include-rt=true"
+      );
+
+      assertThat(walaExitCode).isEqualTo(0);
+      assertThat(asmExitCode).isEqualTo(0);
+      TestUtils.assertWalaEdgeCoverage(walaOutput, asmOutput, 1.0);
+    } finally {
+      TestUtils.cleanupFile(walaOutput);
+      TestUtils.cleanupFile(asmOutput);
+    }
+  }
+
+  /**
+   * Integration test: Verifies ASM fully covers WALA edges for OkHttp without RT classes.
+   * Expects zero missing WALA edges in the ASM output.
+   */
+  @Test
+  void testAsmEngine_CoversWalaEdges_NoRT_OkHttp() throws IOException {
+    File walaOutput = TestUtils.createTempOutputFile();
+    File asmOutput = TestUtils.createTempOutputFile();
+
+    try {
+      int walaExitCode = TestUtils.runMain(
+          okhttpJar.getPath(),
+          "-d", okhttpDeps.getPath(),
+          "-o", walaOutput.getPath(),
+          "--engine=wala",
+          "--include-rt=false"
+      );
+      int asmExitCode = TestUtils.runMain(
+          okhttpJar.getPath(),
+          "-d", okhttpDeps.getPath(),
+          "-o", asmOutput.getPath(),
+          "--engine=asm",
+          "--include-rt=false"
+      );
+
+      assertThat(walaExitCode).isEqualTo(0);
+      assertThat(asmExitCode).isEqualTo(0);
+      TestUtils.assertWalaEdgeCoverage(walaOutput, asmOutput, 0.0);
+    } finally {
+      TestUtils.cleanupFile(walaOutput);
+      TestUtils.cleanupFile(asmOutput);
+    }
+  }
+
+  /**
+   * Integration test: Verifies ASM covers WALA edges for OkHttp with RT classes enabled.
+   * Expects at most 1% of WALA edges to be missing from the ASM output.
+   */
+  @Test
+  void testAsmEngine_CoversWalaEdges_WithRT_OkHttp() throws IOException {
+    File walaOutput = TestUtils.createTempOutputFile();
+    File asmOutput = TestUtils.createTempOutputFile();
+
+    try {
+      int walaExitCode = TestUtils.runMain(
+          okhttpJar.getPath(),
+          "-d", okhttpDeps.getPath(),
+          "-o", walaOutput.getPath(),
+          "--engine=wala",
+          "--include-rt=true"
+      );
+      int asmExitCode = TestUtils.runMain(
+          okhttpJar.getPath(),
+          "-d", okhttpDeps.getPath(),
+          "-o", asmOutput.getPath(),
+          "--engine=asm",
+          "--include-rt=true"
+      );
+
+      assertThat(walaExitCode).isEqualTo(0);
+      assertThat(asmExitCode).isEqualTo(0);
+      TestUtils.assertWalaEdgeCoverage(walaOutput, asmOutput, 1.0);
+    } finally {
+      TestUtils.cleanupFile(walaOutput);
+      TestUtils.cleanupFile(asmOutput);
+    }
+  }
+
+  /**
    * Integration test: Verifies ASM CSV output format.
    * Expects CSV file with correct header: "source_method,target_method".
    */
@@ -162,11 +294,11 @@ class AsmIntegrationTest extends BaseIntegrationTest {
   }
 
   /**
-   * Integration test: Verifies ASM engine produces synthetic lambda edges for OkHttp.
-   * Expects edges with wala/lambda$ prefix following the two-hop pattern.
+   * Integration test: Verifies ASM keeps synthetic lambda edges for OkHttp without RT.
+   * Expects the two-hop lambda pattern to survive no-RT filtering.
    */
   @Test
-  void testAsmEngine_LambdaEdges_OkHttp() throws IOException {
+  void testAsmEngine_LambdaEdges_NoRT_OkHttp() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
 
     int exitCode = TestUtils.runMain(
@@ -178,22 +310,30 @@ class AsmIntegrationTest extends BaseIntegrationTest {
     );
 
     assertThat(exitCode).isEqualTo(0);
+    assertThat(TestUtils.hasRTClasses(outputFile)).isFalse();
 
-    List<String[]> edges = TestUtils.parseCSV(outputFile);
+    assertHasSyntheticLambdaEdges(TestUtils.parseCSV(outputFile));
+  }
 
-    // Hop 1: Some caller -> wala/lambda$...
-    boolean hasLambdaTarget = edges.stream()
-        .anyMatch(e -> e[1].startsWith("wala/lambda$"));
-    assertThat(hasLambdaTarget)
-        .as("Expected edges targeting synthetic lambda classes")
-        .isTrue();
+  /**
+   * Integration test: Verifies ASM engine produces synthetic lambda edges for OkHttp with RT.
+   * Expects edges with wala/lambda$ prefix following the two-hop pattern.
+   */
+  @Test
+  void testAsmEngine_LambdaEdges_OkHttp() throws IOException {
+    outputFile = TestUtils.createTempOutputFile();
 
-    // Hop 2: wala/lambda$... -> impl method
-    boolean hasLambdaSource = edges.stream()
-        .anyMatch(e -> e[0].startsWith("wala/lambda$"));
-    assertThat(hasLambdaSource)
-        .as("Expected edges from synthetic lambda classes to impl methods")
-        .isTrue();
+    int exitCode = TestUtils.runMain(
+        okhttpJar.getPath(),
+        "-d", okhttpDeps.getPath(),
+        "-o", outputFile.getPath(),
+        "--engine=asm",
+        "--include-rt=true"
+    );
+
+    assertThat(exitCode).isEqualTo(0);
+
+    assertHasSyntheticLambdaEdges(TestUtils.parseCSV(outputFile));
   }
 
   /**
@@ -209,7 +349,7 @@ class AsmIntegrationTest extends BaseIntegrationTest {
         "-d", okhttpDeps.getPath(),
         "-o", outputFile.getPath(),
         "--engine=asm",
-        "--include-rt=false"
+        "--include-rt=true"
     );
 
     assertThat(exitCode).isEqualTo(0);
@@ -252,6 +392,22 @@ class AsmIntegrationTest extends BaseIntegrationTest {
         "--engine=invalid"
     );
     assertThat(exitCode).isEqualTo(1);
+  }
+
+  private void assertHasSyntheticLambdaEdges(List<String[]> edges) {
+    // Hop 1: Some caller -> wala/lambda$...
+    boolean hasLambdaTarget = edges.stream()
+        .anyMatch(e -> e[1].startsWith("wala/lambda$"));
+    assertThat(hasLambdaTarget)
+        .as("Expected edges targeting synthetic lambda classes")
+        .isTrue();
+
+    // Hop 2: wala/lambda$... -> impl method
+    boolean hasLambdaSource = edges.stream()
+        .anyMatch(e -> e[0].startsWith("wala/lambda$"));
+    assertThat(hasLambdaSource)
+        .as("Expected edges from synthetic lambda classes to impl methods")
+        .isTrue();
   }
 
   /**

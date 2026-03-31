@@ -128,7 +128,7 @@ class RtaIntegrationTest extends BaseIntegrationTest {
   }
 
   /**
-   * Integration test: Verifies that RTA produces clinit edges from boot.
+   * Integration test: Verifies that RTA produces clinit edges from boot when RT is included.
    * Expects {@code <boot> -> <clinit>} edges to exist in the output.
    */
   @Test
@@ -140,7 +140,7 @@ class RtaIntegrationTest extends BaseIntegrationTest {
         "-d", okhttpDeps.getPath(),
         "-o", outputFile.getPath(),
         "--engine=asm",
-        "--include-rt=false"
+        "--include-rt=true"
     );
 
     assertThat(exitCode).isEqualTo(0);
@@ -154,11 +154,11 @@ class RtaIntegrationTest extends BaseIntegrationTest {
   }
 
   /**
-   * Integration test: Verifies clinit edges are only for non-Primordial classes.
-   * Expects no {@code <boot> -> java/*.<clinit>} edges when RT is excluded.
+   * Integration test: Verifies no-RT output filters boot edges like WALA.
+   * Expects no {@code <boot> -> *} edges when RT is excluded.
    */
   @Test
-  void testRtaEngine_ClinitEdgesAreNonPrimordial() throws IOException {
+  void testRtaEngine_NoRtFiltersBootEdges() throws IOException {
     outputFile = TestUtils.createTempOutputFile();
 
     int exitCode = TestUtils.runMain(
@@ -171,12 +171,10 @@ class RtaIntegrationTest extends BaseIntegrationTest {
     assertThat(exitCode).isEqualTo(0);
 
     List<String[]> edges = TestUtils.parseCSV(outputFile);
-    boolean hasPrimordialClinit = edges.stream()
-        .anyMatch(e -> e[0].equals("<boot>")
-            && e[1].contains("<clinit>")
-            && e[1].startsWith("java/"));
-    assertThat(hasPrimordialClinit)
-        .as("Expected no <boot> -> java/*.<clinit> edges when RT excluded")
+    boolean hasBootEdges = edges.stream()
+        .anyMatch(e -> e[0].equals("<boot>"));
+    assertThat(hasBootEdges)
+        .as("Expected no <boot> edges when RT is excluded")
         .isFalse();
   }
 }
