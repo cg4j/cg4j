@@ -112,24 +112,6 @@ The `/input` volume mount lets the container read the application JAR and any de
 from your machine. The `/output` volume mount writes the generated call graph CSV back to your
 machine.
 
-### Docker Compose
-
-```bash
-# Configure paths (first time only)
-cp .env.example .env
-# Edit .env to set INPUT_DIR and OUTPUT_DIR
-
-# Run analysis
-docker-compose run --rm cg4j -j /input/myapp.jar -o /output/callgraph.csv
-
-# Show help
-docker-compose run --rm cg4j --help
-```
-
-Default configuration (`.env`):
-- Input: `./src/test/resources/test-jars`
-- Output: `/tmp/cg4j-output`
-
 ## Development
 
 Build from source using Make:
