@@ -84,18 +84,32 @@ cg4j -j myapp.jar -q
 
 ## Docker
 
-### Build and Run
+### Pull and Run
 
 ```bash
-# Build image
-docker build -t cg4j:latest .
+# Pull image
+docker pull cg4j/cg4j:latest
+```
 
+```bash
+# Show help
+docker run --rm cg4j/cg4j:latest --help
+```
+
+The Docker container supports the same CLI options as the local `cg4j` installation shown
+above.
+
+```bash
 # Run analysis
 docker run --rm \
   -v $(pwd):/input:ro \
   -v $(pwd):/output \
-  cg4j:latest -j /input/myapp.jar -o /output/callgraph.csv
+  cg4j/cg4j:latest -j /input/myapp.jar -o /output/callgraph.csv
 ```
+
+The `/input` volume mount lets the container read the application JAR and any dependency JARs
+from your machine. The `/output` volume mount writes the generated call graph CSV back to your
+machine.
 
 ### Docker Compose
 
