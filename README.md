@@ -86,21 +86,22 @@ cg4j -j myapp.jar -q
 
 ### Pull and Run
 
+Pull the latest published image:
+
 ```bash
-# Pull image
 docker pull cg4j/cg4j:latest
 ```
 
+Show the available CLI options. The Docker container supports the same options as the local
+`cg4j` installation shown above.
+
 ```bash
-# Show help
 docker run --rm cg4j/cg4j:latest --help
 ```
 
-The Docker container supports the same CLI options as the local `cg4j` installation shown
-above.
+Run an analysis by mounting your current directory into the container for input and output:
 
 ```bash
-# Run analysis
 docker run --rm \
   -v $(pwd):/input:ro \
   -v $(pwd):/output \
