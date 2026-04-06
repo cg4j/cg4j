@@ -8,6 +8,7 @@
   <a href="https://github.com/cg4j/cg4j/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/cg4j/cg4j/build.yml?branch=master&label=build&style=flat-square" alt="Build"></a>
   <a href="https://github.com/cg4j/cg4j/blob/master/LICENSE"><img src="https://img.shields.io/github/license/cg4j/cg4j?style=flat-square" alt="License"></a>
   <a href="https://central.sonatype.com/artifact/net.cg4j/cg4j"><img src="https://img.shields.io/maven-central/v/net.cg4j/cg4j?label=maven&style=flat-square" alt="Maven"></a>
+  <a href="https://hub.docker.com/r/cg4j/cg4j"><img src="https://img.shields.io/docker/v/cg4j/cg4j?sort=semver&label=docker&style=flat-square" alt="Docker"></a>
 </p>
 
 A command-line tool to build call graphs for Java programs.
@@ -84,36 +85,33 @@ cg4j -j myapp.jar -q
 
 ## Docker
 
-### Build and Run
+### Pull and Run
+
+Pull the latest published image:
 
 ```bash
-# Build image
-docker build -t cg4j:latest .
+docker pull cg4j/cg4j:latest
+```
 
-# Run analysis
+Show the available CLI options. The Docker container supports the same options as the local
+`cg4j` installation shown above.
+
+```bash
+docker run --rm cg4j/cg4j:latest --help
+```
+
+Run an analysis by mounting your current directory into the container for input and output:
+
+```bash
 docker run --rm \
   -v $(pwd):/input:ro \
   -v $(pwd):/output \
-  cg4j:latest -j /input/myapp.jar -o /output/callgraph.csv
+  cg4j/cg4j:latest -j /input/myapp.jar -o /output/callgraph.csv
 ```
 
-### Docker Compose
-
-```bash
-# Configure paths (first time only)
-cp .env.example .env
-# Edit .env to set INPUT_DIR and OUTPUT_DIR
-
-# Run analysis
-docker-compose run --rm cg4j -j /input/myapp.jar -o /output/callgraph.csv
-
-# Show help
-docker-compose run --rm cg4j --help
-```
-
-Default configuration (`.env`):
-- Input: `./src/test/resources/test-jars`
-- Output: `/tmp/cg4j-output`
+The `/input` volume mount lets the container read the application JAR and any dependency JARs
+from your machine. The `/output` volume mount writes the generated call graph CSV back to your
+machine.
 
 ## Development
 

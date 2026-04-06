@@ -1,0 +1,81 @@
+name: Publish Docker image
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6.0.2
+        with:
+          ref: refs/tags/${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5.2.0
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Resolve release version from tag
+        id: release_version
+        shell: bash
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          RELEASE_VERSION="${TAG#v}"
+
+          if [[ "$TAG" != v* || -z "$RELEASE_VERSION" || "$RELEASE_VERSION" == "$TAG" ]]; then
+            echo "Failed to resolve release version from tag: $TAG"
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set project version to release version
+        shell: bash
+        run: |
+          mvn -B -ntp versions:set \
+            -DnewVersion="${{ steps.release_version.outputs.release_version }}" \
+            -DgenerateBackupPoms=false
+
+      - name: Verify effective project version
+        shell: bash
+        run: |
+          POM_VERSION=$(mvn -q -ntp -DforceStdout help:evaluate -Dexpression=project.version)
+          echo "Effective pom.xml version after override: $POM_VERSION"
+          test "$POM_VERSION" = "${{ steps.release_version.outputs.release_version }}"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4.1.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Prepare Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6.0.0
+        with:
+          images: cg4j/cg4j
+          tags: |
+            type=raw,value=${{ steps.release_version.outputs.tag }}
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7.0.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.release_version.outputs.tag }}
+            VCS_REF=${{ github.sha }}
+            SOURCE_URL=https://github.com/${{ github.repository }}

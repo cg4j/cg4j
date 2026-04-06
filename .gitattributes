@@ -18,7 +18,6 @@ pom.xml text diff=java
 
 # Docker
 Dockerfile text
-docker-compose.yml text
 
 # Markdown and docs
 *.md text diff=markdown
