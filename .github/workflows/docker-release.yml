@@ -31,6 +31,11 @@ jobs:
           TAG="${{ github.event.release.tag_name }}"
           RELEASE_VERSION="${TAG#v}"
 
+          if [[ "$TAG" != v* || -z "$RELEASE_VERSION" || "$RELEASE_VERSION" == "$TAG" ]]; then
+            echo "Failed to resolve release version from tag: $TAG"
+            exit 1
+          fi
+
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
 
