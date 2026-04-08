@@ -157,6 +157,8 @@ public final class ScopeExclusions {
 
   /**
    * Returns the number of loaded exclusion patterns.
+   *
+   * @return the number of compiled exclusion patterns
    */
   public int patternCount() {
     return patterns.size();

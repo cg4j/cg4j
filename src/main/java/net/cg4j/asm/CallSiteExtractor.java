@@ -85,6 +85,8 @@ public final class CallSiteExtractor extends MethodVisitor {
 
   /**
    * Returns the extracted call sites.
+   *
+   * @return the extracted method invocation sites
    */
   public List<CallSite> getCallSites() {
     return callSites;
@@ -92,6 +94,8 @@ public final class CallSiteExtractor extends MethodVisitor {
 
   /**
    * Returns the lambda/method-reference call sites from INVOKEDYNAMIC instructions.
+   *
+   * @return the extracted lambda call sites
    */
   public List<LambdaCallSite> getLambdaCallSites() {
     return lambdaCallSites;
@@ -99,6 +103,8 @@ public final class CallSiteExtractor extends MethodVisitor {
 
   /**
    * Returns the types instantiated via NEW instructions.
+   *
+   * @return the set of instantiated internal type names
    */
   public Set<String> getInstantiatedTypes() {
     return instantiatedTypes;
@@ -106,6 +112,8 @@ public final class CallSiteExtractor extends MethodVisitor {
 
   /**
    * Returns the owners of classes whose static fields are accessed.
+   *
+   * @return the set of internal class names with static field access
    */
   public Set<String> getStaticFieldOwners() {
     return staticFieldOwners;

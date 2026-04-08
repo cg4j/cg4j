@@ -25,6 +25,8 @@ public final class JdkLocator {
   /**
    * Returns the path to rt.jar for Java 8 or null for Java 9+.
    * For Java 9+, use getJrtFileSystem() instead.
+   *
+   * @return the {@code rt.jar} file, or {@code null} on Java 9+
    */
   public static File getRtJar() {
     String javaHome = System.getProperty("java.home");
@@ -50,6 +52,8 @@ public final class JdkLocator {
 
   /**
    * Returns the Java version as an integer (e.g., 8, 11, 17, 21).
+   *
+   * @return the detected Java feature version
    */
   public static int getJavaVersion() {
     String version = System.getProperty("java.version");
@@ -72,6 +76,8 @@ public final class JdkLocator {
 
   /**
    * Returns true if running on Java 9 or later.
+   *
+   * @return {@code true} if the runtime is Java 9 or later
    */
   public static boolean isJava9OrLater() {
     return getJavaVersion() >= 9;
@@ -82,6 +88,7 @@ public final class JdkLocator {
    * Caller is responsible for closing the returned FileSystem.
    *
    * @return FileSystem for jrt:/ or null if not available
+   * @throws IOException if the JRT file system cannot be opened
    */
   public static FileSystem getJrtFileSystem() throws IOException {
     if (!isJava9OrLater()) {
@@ -93,6 +100,9 @@ public final class JdkLocator {
 
   /**
    * Returns the path to the modules directory in jrt:/ file system.
+   *
+   * @param jrtFs the open JRT file system
+   * @return the modules root path inside the JRT file system
    */
   public static Path getJrtModulesPath(FileSystem jrtFs) {
     return jrtFs.getPath("/modules");

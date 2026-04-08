@@ -67,6 +67,11 @@ public final class AsmCallGraphBuilder {
   private final Map<MethodSignature, LambdaImplementation> lambdaImplementations = new HashMap<>();
 
   /**
+   * Creates an ASM-backed call graph builder.
+   */
+  public AsmCallGraphBuilder() {}
+
+  /**
    * Builds a call graph for the given JAR file using RTA algorithm.
    *
    * @param jarFile the target JAR to analyze
@@ -74,6 +79,7 @@ public final class AsmCallGraphBuilder {
    * @param includeRt whether to include JDK classes in the output
    * @param exclusions scope exclusions to filter Primordial classes from hierarchy
    * @return the call graph result
+   * @throws IOException if class metadata or bytecode cannot be read
    */
   public CallGraphResult buildCallGraph(String jarFile, List<File> dependencies,
                                         boolean includeRt, ScopeExclusions exclusions)

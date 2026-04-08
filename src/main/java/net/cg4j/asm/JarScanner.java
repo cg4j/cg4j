@@ -36,6 +36,7 @@ public final class JarScanner {
    * @param jarFile the JAR file to scan
    * @param loaderType the loader type to assign to classes
    * @return map of class name to ClassInfo
+   * @throws IOException if the JAR cannot be opened or read
    */
   public static Map<String, ClassInfo> scanJar(File jarFile, ClassLoaderType loaderType)
       throws IOException {
@@ -68,6 +69,7 @@ public final class JarScanner {
    * @param jarFiles the JAR files to scan
    * @param loaderType the loader type to assign to classes
    * @return map of class name to ClassInfo
+   * @throws IOException if any JAR cannot be opened or read
    */
   public static Map<String, ClassInfo> scanJars(List<File> jarFiles, ClassLoaderType loaderType)
       throws IOException {
@@ -84,6 +86,7 @@ public final class JarScanner {
    * Scans JDK classes from rt.jar (Java 8) or jrt:/ filesystem (Java 9+).
    *
    * @return map of class name to ClassInfo
+   * @throws IOException if the runtime classes cannot be scanned
    */
   public static Map<String, ClassInfo> scanJdk() throws IOException {
     File rtJar = JdkLocator.getRtJar();
@@ -158,6 +161,10 @@ public final class JarScanner {
 
   /**
    * Parses a class from raw bytecode.
+   *
+   * @param bytecode raw class bytecode
+   * @param loaderType the loader type to assign to the parsed class
+   * @return the parsed class metadata
    */
   public static ClassInfo parseClass(byte[] bytecode, ClassLoaderType loaderType) {
     ClassReader reader = new ClassReader(bytecode);
@@ -172,6 +179,7 @@ public final class JarScanner {
    * for efficient repeated lookups. Caller must close the loader when done.
    *
    * @return a new PrimordialBytecodeLoader
+   * @throws IOException if the JDK runtime cannot be opened
    */
   public static PrimordialBytecodeLoader createPrimordialLoader() throws IOException {
     File rtJar = JdkLocator.getRtJar();

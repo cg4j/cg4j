@@ -24,6 +24,8 @@ public final class CallGraphResult {
 
   /**
    * Returns the call graph edges.
+   *
+   * @return the immutable set of call graph edges
    */
   public Set<Edge> getEdges() {
     return edges;
@@ -31,6 +33,8 @@ public final class CallGraphResult {
 
   /**
    * Returns the reachable methods.
+   *
+   * @return the immutable set of reachable methods
    */
   public Set<MethodSignature> getReachableMethods() {
     return reachableMethods;
@@ -38,6 +42,8 @@ public final class CallGraphResult {
 
   /**
    * Returns the number of edges in the call graph.
+   *
+   * @return the number of edges in the call graph
    */
   public int getEdgeCount() {
     return edges.size();
@@ -61,10 +67,20 @@ public final class CallGraphResult {
       this.target = target;
     }
 
+    /**
+     * Returns the calling method.
+     *
+     * @return the source method
+     */
     public MethodSignature getSource() {
       return source;
     }
 
+    /**
+     * Returns the called method.
+     *
+     * @return the target method
+     */
     public MethodSignature getTarget() {
       return target;
     }

@@ -40,20 +40,37 @@ public final class MethodSignature {
     this.access = access;
   }
 
+  /**
+   * Returns the internal owner class name.
+   *
+   * @return the owner class name
+   */
   public String getOwner() {
     return owner;
   }
 
+  /**
+   * Returns the method name.
+   *
+   * @return the method name
+   */
   public String getName() {
     return name;
   }
 
+  /**
+   * Returns the JVM method descriptor.
+   *
+   * @return the method descriptor
+   */
   public String getDescriptor() {
     return descriptor;
   }
 
   /**
    * Returns the method access flags.
+   *
+   * @return the raw ASM access flags
    */
   public int getAccess() {
     return access;
@@ -61,6 +78,8 @@ public final class MethodSignature {
 
   /**
    * Returns true if this method is public.
+   *
+   * @return {@code true} if the method is public
    */
   public boolean isPublic() {
     return (access & Opcodes.ACC_PUBLIC) != 0;
@@ -68,6 +87,8 @@ public final class MethodSignature {
 
   /**
    * Returns true if this method is abstract.
+   *
+   * @return {@code true} if the method is abstract
    */
   public boolean isAbstract() {
     return (access & Opcodes.ACC_ABSTRACT) != 0;
@@ -75,6 +96,8 @@ public final class MethodSignature {
 
   /**
    * Returns true if this method is static.
+   *
+   * @return {@code true} if the method is static
    */
   public boolean isStatic() {
     return (access & Opcodes.ACC_STATIC) != 0;
@@ -83,6 +106,8 @@ public final class MethodSignature {
   /**
    * Formats the method as URI: owner.name:descriptor
    * For the synthetic boot method, returns just "&lt;boot&gt;" to match WALA's convention.
+   *
+   * @return the formatted method URI
    */
   public String toUri() {
     // Match WALA's convention: synthetic boot method is just "<boot>"
