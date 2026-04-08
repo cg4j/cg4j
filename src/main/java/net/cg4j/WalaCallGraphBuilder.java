@@ -38,7 +38,18 @@ import java.util.stream.StreamSupport;
 public class WalaCallGraphBuilder {
 
   /**
+   * Creates a WALA-backed call graph builder.
+   */
+  public WalaCallGraphBuilder() {}
+
+  /**
    * Builds an RTA call graph for the given JAR file.
+   *
+   * @param jarFile target application JAR path
+   * @param dependencies dependency JAR files to add to the extension loader
+   * @param exclusionFile WALA exclusions file
+   * @return the constructed WALA call graph
+   * @throws Exception if scope creation or call graph construction fails
    */
   public CallGraph buildCallGraph(String jarFile, List<File> dependencies, File exclusionFile) 
       throws Exception {
@@ -131,6 +142,10 @@ public class WalaCallGraphBuilder {
 
   /**
    * Formats a method to URI format: package/Class.method:descriptor
+   *
+   * @param type declaring type name
+   * @param selector method selector containing name and descriptor
+   * @return the formatted method URI, or {@code null} for skipped synthetic targets
    */
   public static String formatMethod(TypeName type, Selector selector) {
     String packageName = type.getPackage() == null ? "" : type.getPackage() + "/";
@@ -253,9 +268,18 @@ public class WalaCallGraphBuilder {
    * Represents a call graph edge.
    */
   public static class CallGraphEdge {
+    /** Source method URI. */
     public final String source;
+
+    /** Target method URI. */
     public final String target;
 
+    /**
+     * Creates a call graph edge.
+     *
+     * @param source source method URI
+     * @param target target method URI
+     */
     public CallGraphEdge(String source, String target) {
       this.source = source;
       this.target = target;

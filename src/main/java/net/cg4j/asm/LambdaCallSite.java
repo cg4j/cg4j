@@ -39,6 +39,8 @@ public final class LambdaCallSite {
 
   /**
    * Returns the SAM method name on the functional interface.
+   *
+   * @return the functional interface method name
    */
   public String getSamMethodName() {
     return samMethodName;
@@ -46,6 +48,8 @@ public final class LambdaCallSite {
 
   /**
    * Returns the erased SAM method descriptor.
+   *
+   * @return the erased SAM method descriptor
    */
   public String getSamDescriptor() {
     return samDescriptor;
@@ -54,6 +58,8 @@ public final class LambdaCallSite {
   /**
    * Returns the invokedynamic call-site descriptor.
    * The return type encodes the functional interface.
+   *
+   * @return the invokedynamic call-site descriptor
    */
   public String getIndyDescriptor() {
     return indyDescriptor;
@@ -61,6 +67,8 @@ public final class LambdaCallSite {
 
   /**
    * Returns the lambda body owner class.
+   *
+   * @return the internal owner class name
    */
   public String getImplOwner() {
     return implOwner;
@@ -68,6 +76,8 @@ public final class LambdaCallSite {
 
   /**
    * Returns the lambda body method name.
+   *
+   * @return the implementation method name
    */
   public String getImplName() {
     return implName;
@@ -75,6 +85,8 @@ public final class LambdaCallSite {
 
   /**
    * Returns the lambda body method descriptor.
+   *
+   * @return the implementation method descriptor
    */
   public String getImplDescriptor() {
     return implDescriptor;
@@ -82,6 +94,8 @@ public final class LambdaCallSite {
 
   /**
    * Returns the handle tag for the implementation method.
+   *
+   * @return the ASM handle tag for the implementation method
    */
   public int getImplTag() {
     return implTag;

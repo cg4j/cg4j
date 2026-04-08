@@ -40,32 +40,64 @@ public final class ClassInfo {
     this.hasClinit = hasClinit;
   }
 
+  /**
+   * Returns the internal class name.
+   *
+   * @return the internal class name
+   */
   public String getName() {
     return name;
   }
 
+  /**
+   * Returns the internal superclass name.
+   *
+   * @return the superclass name, or {@code null} for {@code java/lang/Object}
+   */
   public String getSuperName() {
     return superName;
   }
 
+  /**
+   * Returns the directly implemented interfaces.
+   *
+   * @return the immutable set of direct interfaces
+   */
   public Set<String> getInterfaces() {
     return interfaces;
   }
 
+  /**
+   * Returns the declared methods.
+   *
+   * @return the immutable set of declared methods
+   */
   public Set<MethodSignature> getMethods() {
     return methods;
   }
 
+  /**
+   * Returns the raw ASM access flags.
+   *
+   * @return the class access flags
+   */
   public int getAccess() {
     return access;
   }
 
+  /**
+   * Returns the class loader scope for this class.
+   *
+   * @return the class loader type
+   */
   public ClassLoaderType getLoaderType() {
     return loaderType;
   }
 
   /**
    * Returns true if this class has a static initializer ({@code <clinit>}).
+   *
+   * @return {@code true} if the class declares a static initializer
    */
   public boolean hasClinit() {
     return hasClinit;
@@ -73,6 +105,8 @@ public final class ClassInfo {
 
   /**
    * Returns true if this class is public.
+   *
+   * @return {@code true} if the class is public
    */
   public boolean isPublic() {
     return (access & org.objectweb.asm.Opcodes.ACC_PUBLIC) != 0;
@@ -80,6 +114,8 @@ public final class ClassInfo {
 
   /**
    * Returns true if this class is an interface.
+   *
+   * @return {@code true} if the class is an interface
    */
   public boolean isInterface() {
     return (access & org.objectweb.asm.Opcodes.ACC_INTERFACE) != 0;
@@ -87,6 +123,8 @@ public final class ClassInfo {
 
   /**
    * Returns true if this class is abstract.
+   *
+   * @return {@code true} if the class is abstract
    */
   public boolean isAbstract() {
     return (access & org.objectweb.asm.Opcodes.ACC_ABSTRACT) != 0;
@@ -94,6 +132,10 @@ public final class ClassInfo {
 
   /**
    * Checks if this class declares the given method.
+   *
+   * @param methodName the method name
+   * @param descriptor the method descriptor
+   * @return {@code true} if the class declares the method
    */
   public boolean hasMethod(String methodName, String descriptor) {
     for (MethodSignature m : methods) {
@@ -106,6 +148,10 @@ public final class ClassInfo {
 
   /**
    * Gets a method signature if declared in this class.
+   *
+   * @param methodName the method name
+   * @param descriptor the method descriptor
+   * @return the declared method, or {@code null} if absent
    */
   public MethodSignature getMethod(String methodName, String descriptor) {
     for (MethodSignature m : methods) {

@@ -30,28 +30,55 @@ public final class CallSite {
     this.isInterface = isInterface;
   }
 
+  /**
+   * Returns the invoke opcode.
+   *
+   * @return the JVM invoke opcode for this call site
+   */
   public int getOpcode() {
     return opcode;
   }
 
+  /**
+   * Returns the target owner class.
+   *
+   * @return the internal owner class name
+   */
   public String getOwner() {
     return owner;
   }
 
+  /**
+   * Returns the target method name.
+   *
+   * @return the target method name
+   */
   public String getName() {
     return name;
   }
 
+  /**
+   * Returns the target method descriptor.
+   *
+   * @return the JVM method descriptor
+   */
   public String getDescriptor() {
     return descriptor;
   }
 
+  /**
+   * Returns whether the owner is an interface.
+   *
+   * @return {@code true} if the owner is an interface
+   */
   public boolean isInterface() {
     return isInterface;
   }
 
   /**
    * Returns true if this is a static call (INVOKESTATIC).
+   *
+   * @return {@code true} if this call site uses {@code INVOKESTATIC}
    */
   public boolean isStatic() {
     return opcode == Opcodes.INVOKESTATIC;
@@ -59,6 +86,8 @@ public final class CallSite {
 
   /**
    * Returns true if this is a special call (INVOKESPECIAL - constructors, super, private).
+   *
+   * @return {@code true} if this call site uses {@code INVOKESPECIAL}
    */
   public boolean isSpecial() {
     return opcode == Opcodes.INVOKESPECIAL;
@@ -66,6 +95,8 @@ public final class CallSite {
 
   /**
    * Returns true if this is a virtual/interface call requiring CHA resolution.
+   *
+   * @return {@code true} if this call requires virtual dispatch resolution
    */
   public boolean isVirtual() {
     return opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKEINTERFACE;
@@ -73,6 +104,8 @@ public final class CallSite {
 
   /**
    * Creates a method signature for the target of this call site.
+   *
+   * @return the target method signature
    */
   public MethodSignature toMethodSignature() {
     return new MethodSignature(owner, name, descriptor);

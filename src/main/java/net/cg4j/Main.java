@@ -81,6 +81,16 @@ public class Main implements Callable<Integer> {
           description = "Suppress info/progress logs (errors only)")
   private boolean quiet;
 
+  /**
+   * Creates the CLI entry point.
+   */
+  public Main() {}
+
+  /**
+   * Runs the command-line application.
+   *
+   * @param args command-line arguments
+   */
   public static void main(String[] args) {
     int exitCode = new CommandLine(new Main()).execute(args);
     System.exit(exitCode);

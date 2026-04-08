@@ -57,6 +57,9 @@ public final class ClassHierarchy {
 
   /**
    * Returns the ClassInfo for a class name, or null if not found.
+   *
+   * @param name the internal class name
+   * @return the class metadata, or {@code null} if absent
    */
   public ClassInfo getClass(String name) {
     return classes.get(name);
@@ -64,6 +67,9 @@ public final class ClassHierarchy {
 
   /**
    * Returns true if the class exists in the hierarchy.
+   *
+   * @param name the internal class name
+   * @return {@code true} if the class exists in the hierarchy
    */
   public boolean hasClass(String name) {
     return classes.containsKey(name);
@@ -71,6 +77,8 @@ public final class ClassHierarchy {
 
   /**
    * Returns all classes in the hierarchy.
+   *
+   * @return an immutable view of all indexed classes
    */
   public Map<String, ClassInfo> getAllClasses() {
     return Collections.unmodifiableMap(classes);
@@ -78,6 +86,9 @@ public final class ClassHierarchy {
 
   /**
    * Returns direct subclasses of a class.
+   *
+   * @param className the internal superclass name
+   * @return the direct subclasses of the class
    */
   public Set<String> getDirectSubclasses(String className) {
     return subclasses.getOrDefault(className, Collections.emptySet());
@@ -85,6 +96,9 @@ public final class ClassHierarchy {
 
   /**
    * Returns direct implementors of an interface.
+   *
+   * @param interfaceName the internal interface name
+   * @return the direct implementors of the interface
    */
   public Set<String> getDirectImplementors(String interfaceName) {
     return implementors.getOrDefault(interfaceName, Collections.emptySet());
@@ -93,6 +107,9 @@ public final class ClassHierarchy {
   /**
    * Returns all subtypes (transitive) of a type, including itself.
    * Results are cached for performance.
+   *
+   * @param typeName the internal type name
+   * @return the transitive subtype closure including {@code typeName}
    */
   public Set<String> getAllSubtypes(String typeName) {
     return subtypesCache.computeIfAbsent(typeName, this::computeAllSubtypes);
@@ -157,6 +174,9 @@ public final class ClassHierarchy {
 
   /**
    * Returns all interfaces implemented by a class or interface, transitively.
+   *
+   * @param className the internal class or interface name
+   * @return the transitive set of implemented interfaces
    */
   public Set<String> getAllImplementedInterfaces(String className) {
     return implementedInterfacesCache.computeIfAbsent(className, this::computeAllImplementedInterfaces);
@@ -178,6 +198,10 @@ public final class ClassHierarchy {
 
   /**
    * Returns true if {@code concreteType} is assignable to {@code declaredType}.
+   *
+   * @param concreteType the concrete runtime type
+   * @param declaredType the declared target type
+   * @return {@code true} if {@code concreteType} is assignable to {@code declaredType}
    */
   public boolean isAssignableTo(String concreteType, String declaredType) {
     if (concreteType.equals(declaredType)) {
@@ -206,6 +230,11 @@ public final class ClassHierarchy {
 
   /**
    * Resolves the concrete target of a virtual/interface dispatch for a receiver type.
+   *
+   * @param concreteType the concrete receiver type
+   * @param methodName the target method name
+   * @param descriptor the target method descriptor
+   * @return the resolved concrete target, or {@code null} if resolution fails
    */
   public MethodSignature resolveVirtualTarget(String concreteType, String methodName,
                                               String descriptor) {
@@ -332,6 +361,8 @@ public final class ClassHierarchy {
 
   /**
    * Returns the number of classes in the hierarchy.
+   *
+   * @return the number of indexed classes
    */
   public int size() {
     return classes.size();

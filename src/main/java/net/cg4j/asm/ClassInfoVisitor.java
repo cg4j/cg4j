@@ -60,6 +60,8 @@ public final class ClassInfoVisitor extends ClassVisitor {
   /**
    * Returns the extracted class info.
    * Must be called after the class has been visited.
+   *
+   * @return the extracted class metadata
    */
   public ClassInfo getClassInfo() {
     return new ClassInfo(name, superName, interfaces, methods, access, loaderType, hasClinit);
@@ -67,6 +69,8 @@ public final class ClassInfoVisitor extends ClassVisitor {
 
   /**
    * Returns the class name.
+   *
+   * @return the visited internal class name
    */
   public String getClassName() {
     return name;

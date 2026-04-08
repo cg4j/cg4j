@@ -7,6 +7,11 @@ import picocli.CommandLine.IVersionProvider;
  */
 public class VersionProvider implements IVersionProvider {
 
+  /**
+   * Creates the version provider.
+   */
+  public VersionProvider() {}
+
   @Override
   public String[] getVersion() {
     return new String[] { Version.getInstance().getFullVersion() };

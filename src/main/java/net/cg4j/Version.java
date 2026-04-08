@@ -36,6 +36,8 @@ public class Version {
 
   /**
    * Gets the singleton instance of Version.
+   *
+   * @return the shared Version instance
    */
   public static synchronized Version getInstance() {
     if (instance == null) {
@@ -58,6 +60,8 @@ public class Version {
 
   /**
    * Returns the base version without git commit hash.
+   *
+   * @return the project version string
    */
   public String getVersion() {
     return version;
@@ -65,6 +69,8 @@ public class Version {
 
   /**
    * Returns the git commit hash.
+   *
+   * @return the git commit hash, or {@code unknown}
    */
   public String getGitCommitId() {
     return gitCommitId;
