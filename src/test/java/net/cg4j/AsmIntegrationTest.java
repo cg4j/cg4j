@@ -42,7 +42,7 @@ class AsmIntegrationTest extends BaseIntegrationTest {
         .allMatch(
             prefix ->
                 prefix.startsWith("org/slf4j")
-                    || prefix.equals("<boot")
+                    || prefix.equals("<boot>")
                     || prefix.startsWith("wala/lambda$org$slf4j"));
   }
 
