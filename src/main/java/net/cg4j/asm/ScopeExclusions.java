@@ -1,8 +1,5 @@
 package net.cg4j.asm;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -18,13 +15,15 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Loads and applies scope exclusion patterns to filter Primordial classes from the hierarchy.
  *
- * <p>Exclusion files use one Java regex pattern per line with '/' as the package separator.
- * Lines starting with '#' are comments. Blank lines are ignored.
- * This format is compatible with WALA exclusion files.</p>
+ * <p>Exclusion files use one Java regex pattern per line with '/' as the package separator. Lines
+ * starting with '#' are comments. Blank lines are ignored. This format is compatible with WALA
+ * exclusion files.
  */
 public final class ScopeExclusions {
 
@@ -49,8 +48,8 @@ public final class ScopeExclusions {
         throw new IOException("Default exclusions resource not found: " + DEFAULT_RESOURCE);
       }
       List<String> lines;
-      try (BufferedReader reader = new BufferedReader(
-          new InputStreamReader(is, StandardCharsets.UTF_8))) {
+      try (BufferedReader reader =
+          new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
         lines = reader.lines().collect(Collectors.toList());
       }
       return parseLines(lines, DEFAULT_RESOURCE);
@@ -81,9 +80,7 @@ public final class ScopeExclusions {
     return new ScopeExclusions(Collections.emptyList());
   }
 
-  /**
-   * Parses lines from an exclusion file into compiled regex patterns.
-   */
+  /** Parses lines from an exclusion file into compiled regex patterns. */
   private static ScopeExclusions parseLines(List<String> lines, String source) {
     List<Pattern> compiled = new ArrayList<>();
 
@@ -123,8 +120,8 @@ public final class ScopeExclusions {
   }
 
   /**
-   * Filters classes by removing Primordial entries that match exclusion patterns.
-   * Non-Primordial classes (Extension, Application) are never excluded.
+   * Filters classes by removing Primordial entries that match exclusion patterns. Non-Primordial
+   * classes (Extension, Application) are never excluded.
    *
    * @param classes map of class name to ClassInfo
    * @return new map with excluded Primordial classes removed

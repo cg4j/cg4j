@@ -1,29 +1,27 @@
 package net.cg4j;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 
 /**
- * Integration test for the -q/--quiet CLI option.
- * Runs cg4j as a subprocess to isolate stdout capture from parallel tests.
+ * Integration test for the -q/--quiet CLI option. Runs cg4j as a subprocess to isolate stdout
+ * capture from parallel tests.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class QuietModeIntegrationTest extends BaseIntegrationTest {
 
   /**
-   * Integration test: Verifies that -q suppresses INFO-level log output.
-   * Expects zero stdout output and a valid CSV when quiet mode is enabled.
+   * Integration test: Verifies that -q suppresses INFO-level log output. Expects zero stdout output
+   * and a valid CSV when quiet mode is enabled.
    */
   @Test
   @Disabled("Optional: requires fat JAR to be built first (mvn package)")
@@ -31,20 +29,24 @@ class QuietModeIntegrationTest extends BaseIntegrationTest {
     outputFile = TestUtils.createTempOutputFile();
 
     String jarPath = findFatJar();
-    ProcessBuilder pb = new ProcessBuilder(
-        "java", "-jar", jarPath,
-        "-q",
-        "-j", slf4jJar.getPath(),
-        "-o", outputFile.getPath(),
-        "--engine=asm",
-        "--include-rt=false"
-    );
+    ProcessBuilder pb =
+        new ProcessBuilder(
+            "java",
+            "-jar",
+            jarPath,
+            "-q",
+            "-j",
+            slf4jJar.getPath(),
+            "-o",
+            outputFile.getPath(),
+            "--engine=asm",
+            "--include-rt=false");
     pb.redirectErrorStream(true);
 
     Process process = pb.start();
     String stdout;
-    try (BufferedReader reader = new BufferedReader(
-        new InputStreamReader(process.getInputStream()))) {
+    try (BufferedReader reader =
+        new BufferedReader(new InputStreamReader(process.getInputStream()))) {
       stdout = reader.lines().collect(Collectors.joining("\n"));
     }
 
@@ -63,15 +65,12 @@ class QuietModeIntegrationTest extends BaseIntegrationTest {
         .isEmpty();
   }
 
-  /**
-   * Locates the fat JAR (jar-with-dependencies) in the target directory.
-   */
+  /** Locates the fat JAR (jar-with-dependencies) in the target directory. */
   private static String findFatJar() throws IOException {
     File targetDir = new File("target");
     assertThat(targetDir).exists();
 
-    File[] jars = targetDir.listFiles(
-        (dir, name) -> name.endsWith("-jar-with-dependencies.jar"));
+    File[] jars = targetDir.listFiles((dir, name) -> name.endsWith("-jar-with-dependencies.jar"));
     assertThat(jars)
         .as("Expected fat JAR in target/. Run 'mvn package' first.")
         .isNotNull()

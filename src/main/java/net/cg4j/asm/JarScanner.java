@@ -1,9 +1,5 @@
 package net.cg4j.asm;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.objectweb.asm.ClassReader;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,10 +15,11 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.objectweb.asm.ClassReader;
 
-/**
- * Scans JAR files and JRT filesystem to extract class information using ASM.
- */
+/** Scans JAR files and JRT filesystem to extract class information using ASM. */
 public final class JarScanner {
 
   private static final Logger logger = LogManager.getLogger(JarScanner.class);
@@ -100,9 +97,7 @@ public final class JarScanner {
     return scanJrtFileSystem();
   }
 
-  /**
-   * Scans the jrt:/ filesystem for Java 9+ JDK classes.
-   */
+  /** Scans the jrt:/ filesystem for Java 9+ JDK classes. */
   private static Map<String, ClassInfo> scanJrtFileSystem() throws IOException {
     Map<String, ClassInfo> classes = new HashMap<>();
 
@@ -114,13 +109,14 @@ public final class JarScanner {
 
       Path modulesPath = JdkLocator.getJrtModulesPath(jrtFs);
       try (Stream<Path> modules = Files.list(modulesPath)) {
-        modules.forEach(modulePath -> {
-          try {
-            scanJrtModule(modulePath, classes);
-          } catch (IOException e) {
-            logger.warn("Failed to scan module {}: {}", modulePath, e.getMessage());
-          }
-        });
+        modules.forEach(
+            modulePath -> {
+              try {
+                scanJrtModule(modulePath, classes);
+              } catch (IOException e) {
+                logger.warn("Failed to scan module {}: {}", modulePath, e.getMessage());
+              }
+            });
       }
     }
 
@@ -128,29 +124,26 @@ public final class JarScanner {
     return classes;
   }
 
-  /**
-   * Scans a single module in the jrt:/ filesystem.
-   */
+  /** Scans a single module in the jrt:/ filesystem. */
   private static void scanJrtModule(Path modulePath, Map<String, ClassInfo> classes)
       throws IOException {
     try (Stream<Path> walk = Files.walk(modulePath)) {
       walk.filter(p -> p.toString().endsWith(".class"))
-          .forEach(classPath -> {
-            try (InputStream is = Files.newInputStream(classPath)) {
-              ClassInfo info = parseClass(is, ClassLoaderType.PRIMORDIAL);
-              if (info != null) {
-                classes.put(info.getName(), info);
-              }
-            } catch (Exception e) {
-              logger.trace("Failed to parse {}: {}", classPath, e.getMessage());
-            }
-          });
+          .forEach(
+              classPath -> {
+                try (InputStream is = Files.newInputStream(classPath)) {
+                  ClassInfo info = parseClass(is, ClassLoaderType.PRIMORDIAL);
+                  if (info != null) {
+                    classes.put(info.getName(), info);
+                  }
+                } catch (Exception e) {
+                  logger.trace("Failed to parse {}: {}", classPath, e.getMessage());
+                }
+              });
     }
   }
 
-  /**
-   * Parses a class file and returns ClassInfo.
-   */
+  /** Parses a class file and returns ClassInfo. */
   private static ClassInfo parseClass(InputStream is, ClassLoaderType loaderType)
       throws IOException {
     ClassReader reader = new ClassReader(is);
@@ -174,9 +167,9 @@ public final class JarScanner {
   }
 
   /**
-   * Creates a loader for lazily loading primordial (JDK) class bytecode.
-   * The returned loader caches the JDK file handle (jrt:/ filesystem or rt.jar)
-   * for efficient repeated lookups. Caller must close the loader when done.
+   * Creates a loader for lazily loading primordial (JDK) class bytecode. The returned loader caches
+   * the JDK file handle (jrt:/ filesystem or rt.jar) for efficient repeated lookups. Caller must
+   * close the loader when done.
    *
    * @return a new PrimordialBytecodeLoader
    * @throws IOException if the JDK runtime cannot be opened
@@ -190,8 +183,8 @@ public final class JarScanner {
   }
 
   /**
-   * Loads primordial class bytecode on demand. Implementations cache the underlying
-   * JDK file handle for efficient repeated lookups.
+   * Loads primordial class bytecode on demand. Implementations cache the underlying JDK file handle
+   * for efficient repeated lookups.
    */
   public interface PrimordialBytecodeLoader extends AutoCloseable {
 
@@ -207,9 +200,7 @@ public final class JarScanner {
     void close() throws IOException;
   }
 
-  /**
-   * Loads class bytecode from rt.jar (Java 8).
-   */
+  /** Loads class bytecode from rt.jar (Java 8). */
   private static class RtJarBytecodeLoader implements PrimordialBytecodeLoader {
     private final JarFile jar;
 
@@ -237,9 +228,7 @@ public final class JarScanner {
     }
   }
 
-  /**
-   * Loads class bytecode from the jrt:/ filesystem (Java 9+).
-   */
+  /** Loads class bytecode from the jrt:/ filesystem (Java 9+). */
   private static class JrtBytecodeLoader implements PrimordialBytecodeLoader {
     private final FileSystem jrtFs;
     private final List<Path> modulePaths;

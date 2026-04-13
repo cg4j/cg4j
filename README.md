@@ -170,6 +170,27 @@ grep -oP '<tfoot>.*?<td class="ctr2">\K[0-9]+%' target/site/jacoco/index.html | 
 
 Test data: `src/test/resources/test-jars/`
 
+### Formatting
+
+Format and verify Java sources with Spotless:
+
+```bash
+# Check formatting
+mvn spotless:check
+
+# Apply Google Java Format to Java sources
+mvn spotless:apply
+```
+
+Install the local pre-commit hook:
+
+```bash
+pipx install pre-commit
+pre-commit install
+```
+
+The configured hook runs `mvn spotless:check` before each commit.
+
 ## Output Format
 
 CSV file with two columns:

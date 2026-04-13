@@ -1,17 +1,14 @@
 package net.cg4j.asm;
 
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Unit tests for ClassLoaderType enum.
- */
+import org.junit.jupiter.api.Test;
+
+/** Unit tests for ClassLoaderType enum. */
 class ClassLoaderTypeTest {
 
   /**
-   * Unit test: Tests ClassLoaderType enum values.
-   * Expects correct enum values and valueOf behavior.
+   * Unit test: Tests ClassLoaderType enum values. Expects correct enum values and valueOf behavior.
    */
   @Test
   void testValues() {

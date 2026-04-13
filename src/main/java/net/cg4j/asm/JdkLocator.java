@@ -1,8 +1,5 @@
 package net.cg4j.asm;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -12,10 +9,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-/**
- * Locates JDK runtime classes (rt.jar or jrt:/ for Java 9+).
- */
+/** Locates JDK runtime classes (rt.jar or jrt:/ for Java 9+). */
 public final class JdkLocator {
 
   private static final Logger logger = LogManager.getLogger(JdkLocator.class);
@@ -23,8 +20,8 @@ public final class JdkLocator {
   private JdkLocator() {}
 
   /**
-   * Returns the path to rt.jar for Java 8 or null for Java 9+.
-   * For Java 9+, use getJrtFileSystem() instead.
+   * Returns the path to rt.jar for Java 8 or null for Java 9+. For Java 9+, use getJrtFileSystem()
+   * instead.
    *
    * @return the {@code rt.jar} file, or {@code null} on Java 9+
    */
@@ -84,8 +81,8 @@ public final class JdkLocator {
   }
 
   /**
-   * Opens and returns the jrt:/ file system for Java 9+.
-   * Caller is responsible for closing the returned FileSystem.
+   * Opens and returns the jrt:/ file system for Java 9+. Caller is responsible for closing the
+   * returned FileSystem.
    *
    * @return FileSystem for jrt:/ or null if not available
    * @throws IOException if the JRT file system cannot be opened

@@ -51,9 +51,7 @@ mvn clean test jacoco:report
 
 ### Import Organization
 
-1. Group imports in this order with blank lines between:
-   - Third-party libraries (WALA, Picocli, Log4j) - alphabetically sorted
-   - Java standard library - alphabetically sorted
+1. Let Spotless with Google Java Format manage import ordering and whitespace
 2. No wildcard imports (`import java.util.*;`) - use explicit imports only
 3. No unused imports
 4. No fully qualified class names in code — always import the class and use its simple name
@@ -63,6 +61,8 @@ mvn clean test jacoco:report
 
 ### Formatting
 
+- **Formatter**: Google Java Format via `mvn spotless:apply`
+- **Verification**: `mvn spotless:check`
 - **Indentation**: 2 spaces (no tabs)
 - **Line length**: ~100 characters (flexible for readability)
 - **Braces**: K&R style - opening brace on same line
@@ -184,10 +184,10 @@ When adding dependencies:
 ## Don'ts
 
 - ❌ Don't use wildcard imports
-- ❌ Don't use tabs (use 2 spaces)
+- ❌ Don't use tabs for indentation
 - ❌ Don't catch exceptions unnecessarily
 - ❌ Don't use abbreviations in names (except standard: `cg`, `csv`)
-- ❌ Don't modify existing formatting style
+- ❌ Don't hand-format Java files against Spotless output
 - ❌ Don't add null-assertion libraries
 - ❌ Don't use `TODO` comments without tracking
 

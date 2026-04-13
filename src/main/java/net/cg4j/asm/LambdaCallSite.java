@@ -1,8 +1,8 @@
 package net.cg4j.asm;
 
 /**
- * Represents a lambda or method reference captured from an INVOKEDYNAMIC instruction
- * bootstrapped by {@code LambdaMetafactory.metafactory} or {@code altMetafactory}.
+ * Represents a lambda or method reference captured from an INVOKEDYNAMIC instruction bootstrapped
+ * by {@code LambdaMetafactory.metafactory} or {@code altMetafactory}.
  */
 public final class LambdaCallSite {
 
@@ -18,16 +18,23 @@ public final class LambdaCallSite {
    * Creates a lambda call site.
    *
    * @param samMethodName SAM method name (e.g., "invoke", "run", "apply")
-   * @param samDescriptor erased SAM method descriptor (e.g., "(Ljava/lang/Object;)Ljava/lang/Object;")
-   * @param indyDescriptor invokedynamic call-site descriptor (return type is the functional interface)
+   * @param samDescriptor erased SAM method descriptor (e.g.,
+   *     "(Ljava/lang/Object;)Ljava/lang/Object;")
+   * @param indyDescriptor invokedynamic call-site descriptor (return type is the functional
+   *     interface)
    * @param implOwner lambda body owner class in internal format
    * @param implName lambda body method name
    * @param implDescriptor lambda body method descriptor
    * @param implTag handle tag (e.g., Opcodes.H_INVOKESTATIC)
    */
-  public LambdaCallSite(String samMethodName, String samDescriptor, String indyDescriptor,
-                         String implOwner, String implName,
-                         String implDescriptor, int implTag) {
+  public LambdaCallSite(
+      String samMethodName,
+      String samDescriptor,
+      String indyDescriptor,
+      String implOwner,
+      String implName,
+      String implDescriptor,
+      int implTag) {
     this.samMethodName = samMethodName;
     this.samDescriptor = samDescriptor;
     this.indyDescriptor = indyDescriptor;
@@ -56,8 +63,8 @@ public final class LambdaCallSite {
   }
 
   /**
-   * Returns the invokedynamic call-site descriptor.
-   * The return type encodes the functional interface.
+   * Returns the invokedynamic call-site descriptor. The return type encodes the functional
+   * interface.
    *
    * @return the invokedynamic call-site descriptor
    */
@@ -104,8 +111,14 @@ public final class LambdaCallSite {
   @Override
   public String toString() {
     return "LambdaCallSite{"
-        + "sam=" + samMethodName + samDescriptor
-        + ", impl=" + implOwner + "." + implName + implDescriptor
+        + "sam="
+        + samMethodName
+        + samDescriptor
+        + ", impl="
+        + implOwner
+        + "."
+        + implName
+        + implDescriptor
         + "}";
   }
 }

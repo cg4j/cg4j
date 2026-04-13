@@ -1,14 +1,11 @@
 package net.cg4j;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * Displays the CG4j ASCII art banner with version information at startup.
- */
+/** Displays the CG4j ASCII art banner with version information at startup. */
 public class Banner {
 
   private static final Logger logger = LogManager.getLogger(Banner.class);
@@ -16,12 +13,12 @@ public class Banner {
   private static final String TAGLINE = "CG4j: Call Graph Generation for Java";
 
   private static final String[] LOGO_LINES = {
-      "   ______________ __  _ ",
-      "  / ____/ ____/ // / (_)",
-      " / /   / / __/ // /_/ / ",
-      "/ /___/ /_/ /__  __/ /  ",
-      "\\____/\\____/  /_/_/ /   ",
-      "               /___/    "
+    "   ______________ __  _ ",
+    "  / ____/ ____/ // / (_)",
+    " / /   / / __/ // /_/ / ",
+    "/ /___/ /_/ /__  __/ /  ",
+    "\\____/\\____/  /_/_/ /   ",
+    "               /___/    "
   };
 
   private static final int LOGO_WIDTH = LOGO_LINES[0].length();
@@ -30,18 +27,14 @@ public class Banner {
     // Utility class
   }
 
-  /**
-   * Prints the ASCII art banner with version information to the logger.
-   */
+  /** Prints the ASCII art banner with version information to the logger. */
   public static void print() {
     for (String line : buildBannerLines()) {
       logger.info("{}", line);
     }
   }
 
-  /**
-   * Builds the full banner as a list of lines. Package-private for testing.
-   */
+  /** Builds the full banner as a list of lines. Package-private for testing. */
   static List<String> buildBannerLines() {
     String version = Version.getInstance().getFullVersion();
 
@@ -68,9 +61,7 @@ public class Banner {
     return lines;
   }
 
-  /**
-   * Centers text within a given width, padding with spaces.
-   */
+  /** Centers text within a given width, padding with spaces. */
   private static String centerText(String text, int width) {
     if (text.length() >= width) {
       return text;

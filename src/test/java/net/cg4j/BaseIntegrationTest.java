@@ -1,9 +1,8 @@
 package net.cg4j;
 
+import java.io.File;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-
-import java.io.File;
 
 public abstract class BaseIntegrationTest {
 

@@ -1,19 +1,6 @@
 package net.cg4j;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
-import net.cg4j.asm.AsmCallGraphBuilder;
-import net.cg4j.asm.CallGraphResult;
-import net.cg4j.asm.ScopeExclusions;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.impl.Log4jContextFactory;
-import org.apache.logging.log4j.core.selector.ContextSelector;
-import picocli.CommandLine;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -27,63 +14,85 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import net.cg4j.asm.AsmCallGraphBuilder;
+import net.cg4j.asm.CallGraphResult;
+import net.cg4j.asm.ScopeExclusions;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.impl.Log4jContextFactory;
+import org.apache.logging.log4j.core.selector.ContextSelector;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 
-/**
- * Main entry point for the call graph generation tool.
- */
-@Command(name = "cg4j",
-         mixinStandardHelpOptions = false,
-         versionProvider = VersionProvider.class,
-         description = "Builds call graphs from Java JAR files using WALA or ASM")
+/** Main entry point for the call graph generation tool. */
+@Command(
+    name = "cg4j",
+    mixinStandardHelpOptions = false,
+    versionProvider = VersionProvider.class,
+    description = "Builds call graphs from Java JAR files using WALA or ASM")
 public class Main implements Callable<Integer> {
 
   private static final Logger logger = LogManager.getLogger(Main.class);
 
-  @Option(names = {"-h", "--help"}, usageHelp = true,
-          description = "Show this help message and exit")
+  @Option(
+      names = {"-h", "--help"},
+      usageHelp = true,
+      description = "Show this help message and exit")
   private boolean helpRequested;
 
-  @Option(names = {"-v", "--version"}, versionHelp = true,
-          description = "Print version information and exit")
+  @Option(
+      names = {"-v", "--version"},
+      versionHelp = true,
+      description = "Print version information and exit")
   private boolean versionRequested;
 
-  @Option(names = {"-j", "--app-jar"},
-          required = true,
-          description = "JAR file to analyze")
+  @Option(
+      names = {"-j", "--app-jar"},
+      required = true,
+      description = "JAR file to analyze")
   private File targetJar;
 
-  @Option(names = {"-o", "--output"}, 
-          description = "Output CSV file (default: ${DEFAULT-VALUE})",
-          defaultValue = "callgraph.csv")
+  @Option(
+      names = {"-o", "--output"},
+      description = "Output CSV file (default: ${DEFAULT-VALUE})",
+      defaultValue = "callgraph.csv")
   private String outputCsv;
 
-  @Option(names = {"-d", "--deps"}, 
-          description = "Directory containing dependency JAR files")
+  @Option(
+      names = {"-d", "--deps"},
+      description = "Directory containing dependency JAR files")
   private File depsDir;
 
-  @Option(names = {"--include-rt"},
-          description = "Include Java Runtime (RT) jar in call graph analysis (default: ${DEFAULT-VALUE})",
-          defaultValue = "true")
+  @Option(
+      names = {"--include-rt"},
+      description =
+          "Include Java Runtime (RT) jar in call graph analysis (default: ${DEFAULT-VALUE})",
+      defaultValue = "true")
   private boolean includeRt;
 
-  @Option(names = {"--engine"},
-          description = "Call graph engine: wala or asm (default: ${DEFAULT-VALUE})",
-          defaultValue = "wala")
+  @Option(
+      names = {"--engine"},
+      description = "Call graph engine: wala or asm (default: ${DEFAULT-VALUE})",
+      defaultValue = "wala")
   private String engine;
 
-  @Option(names = {"--exclusions"},
-          description = "Exclusion patterns file for ASM engine scope "
+  @Option(
+      names = {"--exclusions"},
+      description =
+          "Exclusion patterns file for ASM engine scope "
               + "(default: built-in WALA-compatible exclusions)")
   private File exclusionsFile;
 
   /** Suppresses info/progress logs, showing only errors. */
-  @Option(names = {"-q", "--quiet"},
-          description = "Suppress info/progress logs (errors only)")
+  @Option(
+      names = {"-q", "--quiet"},
+      description = "Suppress info/progress logs (errors only)")
   private boolean quiet;
 
-  /**
-   * Creates the CLI entry point.
-   */
+  /** Creates the CLI entry point. */
   public Main() {}
 
   /**
@@ -143,16 +152,15 @@ public class Main implements Callable<Integer> {
     return 0;
   }
 
-  /**
-   * Builds call graph using WALA engine.
-   */
+  /** Builds call graph using WALA engine. */
   private int buildWithWala(List<File> dependencies) throws Exception {
     // Create exclusion file
     Path exclusionFile = createExclusionFile();
     logger.info("Created exclusion file: {}", exclusionFile);
 
     WalaCallGraphBuilder builder = new WalaCallGraphBuilder();
-    CallGraph cg = builder.buildCallGraph(targetJar.getPath(), dependencies, exclusionFile.toFile());
+    CallGraph cg =
+        builder.buildCallGraph(targetJar.getPath(), dependencies, exclusionFile.toFile());
     logger.info("Total nodes: {}", cg.getNumberOfNodes());
 
     // Write call graph to CSV
@@ -160,9 +168,7 @@ public class Main implements Callable<Integer> {
     return writeCallGraphToCSV(cg, outputCsv, includeRt);
   }
 
-  /**
-   * Builds call graph using ASM engine.
-   */
+  /** Builds call graph using ASM engine. */
   private int buildWithAsm(List<File> dependencies) throws Exception {
     // Load exclusions
     ScopeExclusions exclusions;
@@ -175,8 +181,8 @@ public class Main implements Callable<Integer> {
     }
 
     AsmCallGraphBuilder builder = new AsmCallGraphBuilder();
-    CallGraphResult result = builder.buildCallGraph(
-        targetJar.getPath(), dependencies, includeRt, exclusions);
+    CallGraphResult result =
+        builder.buildCallGraph(targetJar.getPath(), dependencies, includeRt, exclusions);
     logger.info("Total reachable methods: {}", result.getReachableMethods().size());
 
     // Write call graph to CSV
@@ -184,21 +190,16 @@ public class Main implements Callable<Integer> {
     return writeAsmCallGraphToCSV(result, outputCsv);
   }
 
-  /**
-   * Sets all Log4j2 logger contexts to ERROR level for quiet mode.
-   */
+  /** Sets all Log4j2 logger contexts to ERROR level for quiet mode. */
   private static void setQuietLogging() {
-    ContextSelector selector =
-        ((Log4jContextFactory) LogManager.getFactory()).getSelector();
+    ContextSelector selector = ((Log4jContextFactory) LogManager.getFactory()).getSelector();
     for (LoggerContext context : selector.getLoggerContexts()) {
       context.getConfiguration().getRootLogger().setLevel(Level.ERROR);
       context.updateLoggers();
     }
   }
 
-  /**
-   * Writes ASM call graph result to CSV file.
-   */
+  /** Writes ASM call graph result to CSV file. */
   private static int writeAsmCallGraphToCSV(CallGraphResult result, String outputFile)
       throws IOException {
     try (PrintWriter writer = new PrintWriter(new FileWriter(outputFile))) {
@@ -216,57 +217,56 @@ public class Main implements Callable<Integer> {
 
   /**
    * Writes call graph to CSV file with format: source_method,target_method
-   * 
+   *
    * @param includeRt if false, filters out edges involving RT (Primordial) methods
    */
-  private static int writeCallGraphToCSV(CallGraph cg, String outputFile, boolean includeRt) throws IOException {
+  private static int writeCallGraphToCSV(CallGraph cg, String outputFile, boolean includeRt)
+      throws IOException {
     int edgeCount = 0;
-    
+
     try (PrintWriter writer = new PrintWriter(new FileWriter(outputFile))) {
       writer.println("source_method,target_method");
-      
+
       AtomicInteger edgeCounter = new AtomicInteger(0);
-      Stream<WalaCallGraphBuilder.CallGraphEdge> edges = WalaCallGraphBuilder.extractEdgesAsStream(cg, includeRt);
-      edges.forEach(edge -> {
-        writer.println(edge.source + "," + edge.target);
-        edgeCounter.incrementAndGet();
-      });
+      Stream<WalaCallGraphBuilder.CallGraphEdge> edges =
+          WalaCallGraphBuilder.extractEdgesAsStream(cg, includeRt);
+      edges.forEach(
+          edge -> {
+            writer.println(edge.source + "," + edge.target);
+            edgeCounter.incrementAndGet();
+          });
       edgeCount = edgeCounter.get();
     }
-    
+
     return edgeCount;
   }
 
-  /**
-   * Creates a WALA exclusion file to filter standard library classes.
-   */
+  /** Creates a WALA exclusion file to filter standard library classes. */
   private static Path createExclusionFile() throws IOException {
-    List<String> exclusions = Arrays.asList(
-        "java/util/.*",
-        "java/io/.*",
-        "java/nio/.*",
-        "java/net/.*",
-        "java/math/.*",
-        "java/awt/.*",
-        "java/text/.*",
-        "java/sql/.*",
-        "java/security/.*",
-        "java/time/.*",
-        "javax/.*",
-        "sun/.*",
-        "com/sun/.*",
-        "jdk/.*",
-        "org/graalvm/.*"
-    );
-    
+    List<String> exclusions =
+        Arrays.asList(
+            "java/util/.*",
+            "java/io/.*",
+            "java/nio/.*",
+            "java/net/.*",
+            "java/math/.*",
+            "java/awt/.*",
+            "java/text/.*",
+            "java/sql/.*",
+            "java/security/.*",
+            "java/time/.*",
+            "javax/.*",
+            "sun/.*",
+            "com/sun/.*",
+            "jdk/.*",
+            "org/graalvm/.*");
+
     Path tmpFile = Paths.get("/tmp/wala_exclusions.txt");
     Files.write(tmpFile, exclusions);
     return tmpFile;
   }
 
-  /**
-   * Finds all JAR files in a directory.
-   */
+  /** Finds all JAR files in a directory. */
   private static List<File> findJarsInDirectory(File directory) {
     List<File> jarFiles = new ArrayList<>();
     File[] files = directory.listFiles();
@@ -279,5 +279,4 @@ public class Main implements Callable<Integer> {
     }
     return jarFiles;
   }
-
 }

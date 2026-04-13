@@ -1,25 +1,27 @@
 package net.cg4j.asm;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Opcodes;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-/**
- * Unit tests for CallSite class.
- */
+/** Unit tests for CallSite class. */
 class CallSiteTest {
 
   /**
-   * Unit test: Tests CallSite properties for different opcodes.
-   * Expects correct identification of static, virtual, special, and interface calls.
+   * Unit test: Tests CallSite properties for different opcodes. Expects correct identification of
+   * static, virtual, special, and interface calls.
    */
   @Test
   void testOpcodeTypes() {
-    CallSite staticCall = new CallSite(Opcodes.INVOKESTATIC, "java/lang/Math", "abs", "(I)I", false);
-    CallSite virtualCall = new CallSite(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
-    CallSite interfaceCall = new CallSite(Opcodes.INVOKEINTERFACE, "java/util/List", "size", "()I", true);
-    CallSite specialCall = new CallSite(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+    CallSite staticCall =
+        new CallSite(Opcodes.INVOKESTATIC, "java/lang/Math", "abs", "(I)I", false);
+    CallSite virtualCall =
+        new CallSite(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
+    CallSite interfaceCall =
+        new CallSite(Opcodes.INVOKEINTERFACE, "java/util/List", "size", "()I", true);
+    CallSite specialCall =
+        new CallSite(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
 
     assertThat(staticCall.isStatic()).isTrue();
     assertThat(staticCall.isVirtual()).isFalse();
@@ -39,12 +41,13 @@ class CallSiteTest {
   }
 
   /**
-   * Unit test: Tests CallSite toMethodSignature conversion.
-   * Expects correct MethodSignature with same owner, name, and descriptor.
+   * Unit test: Tests CallSite toMethodSignature conversion. Expects correct MethodSignature with
+   * same owner, name, and descriptor.
    */
   @Test
   void testToMethodSignature() {
-    CallSite callSite = new CallSite(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
+    CallSite callSite =
+        new CallSite(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
     MethodSignature sig = callSite.toMethodSignature();
 
     assertThat(sig.getOwner()).isEqualTo("java/lang/String");
@@ -53,12 +56,13 @@ class CallSiteTest {
   }
 
   /**
-   * Unit test: Tests CallSite toString includes opcode name.
-   * Expects string representation to contain opcode and method info.
+   * Unit test: Tests CallSite toString includes opcode name. Expects string representation to
+   * contain opcode and method info.
    */
   @Test
   void testToString() {
-    CallSite callSite = new CallSite(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
+    CallSite callSite =
+        new CallSite(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
     assertThat(callSite.toString()).contains("INVOKEVIRTUAL");
     assertThat(callSite.toString()).contains("java/lang/String");
     assertThat(callSite.toString()).contains("length");

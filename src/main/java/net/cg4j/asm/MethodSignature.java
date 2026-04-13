@@ -1,12 +1,9 @@
 package net.cg4j.asm;
 
+import java.util.Objects;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Objects;
-
-/**
- * Uniquely identifies a method by its owner class, name, and descriptor.
- */
+/** Uniquely identifies a method by its owner class, name, and descriptor. */
 public final class MethodSignature {
 
   private final String owner;
@@ -104,8 +101,8 @@ public final class MethodSignature {
   }
 
   /**
-   * Formats the method as URI: owner.name:descriptor
-   * For the synthetic boot method, returns just "&lt;boot&gt;" to match WALA's convention.
+   * Formats the method as URI: owner.name:descriptor For the synthetic boot method, returns just
+   * "&lt;boot&gt;" to match WALA's convention.
    *
    * @return the formatted method URI
    */

@@ -1,8 +1,7 @@
 package net.cg4j.asm;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.objectweb.asm.Opcodes;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,18 +12,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.objectweb.asm.Opcodes;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-/**
- * Unit tests for ScopeExclusions class.
- */
+/** Unit tests for ScopeExclusions class. */
 class ScopeExclusionsTest {
 
   /**
-   * Unit test: Loads default exclusion patterns from the built-in resource.
-   * Expects at least one pattern loaded.
+   * Unit test: Loads default exclusion patterns from the built-in resource. Expects at least one
+   * pattern loaded.
    */
   @Test
   void testLoadDefaults_HasPatterns() throws IOException {
@@ -34,8 +31,8 @@ class ScopeExclusionsTest {
   }
 
   /**
-   * Unit test: Tests that default exclusions match expected JDK packages.
-   * Expects java/util, javax, sun packages to be excluded; java/lang to be kept.
+   * Unit test: Tests that default exclusions match expected JDK packages. Expects java/util, javax,
+   * sun packages to be excluded; java/lang to be kept.
    */
   @Test
   void testIsExcluded_MatchesExpectedPatterns() throws IOException {
@@ -60,8 +57,8 @@ class ScopeExclusionsTest {
   }
 
   /**
-   * Unit test: Verifies applyExclusions only removes Primordial classes.
-   * Expects Application classes matching exclusion patterns to be preserved.
+   * Unit test: Verifies applyExclusions only removes Primordial classes. Expects Application
+   * classes matching exclusion patterns to be preserved.
    */
   @Test
   void testApplyExclusions_OnlyRemovesPrimordial() throws IOException {
@@ -70,16 +67,16 @@ class ScopeExclusionsTest {
     Map<String, ClassInfo> classes = new HashMap<>();
 
     // Primordial class matching exclusion -> should be removed
-    classes.put("java/util/HashMap", makeClassInfo(
-        "java/util/HashMap", ClassLoaderType.PRIMORDIAL));
+    classes.put(
+        "java/util/HashMap", makeClassInfo("java/util/HashMap", ClassLoaderType.PRIMORDIAL));
 
     // Application class matching exclusion pattern -> should be preserved
-    classes.put("java/util/CustomAppUtil", makeClassInfo(
-        "java/util/CustomAppUtil", ClassLoaderType.APPLICATION));
+    classes.put(
+        "java/util/CustomAppUtil",
+        makeClassInfo("java/util/CustomAppUtil", ClassLoaderType.APPLICATION));
 
     // Primordial class NOT matching exclusion -> should be preserved
-    classes.put("java/lang/Object", makeClassInfo(
-        "java/lang/Object", ClassLoaderType.PRIMORDIAL));
+    classes.put("java/lang/Object", makeClassInfo("java/lang/Object", ClassLoaderType.PRIMORDIAL));
 
     Map<String, ClassInfo> filtered = exclusions.applyExclusions(classes);
 
@@ -90,20 +87,17 @@ class ScopeExclusionsTest {
   }
 
   /**
-   * Unit test: Verifies non-matching Primordial classes are preserved.
-   * Expects java/lang/* classes to remain after applying default exclusions.
+   * Unit test: Verifies non-matching Primordial classes are preserved. Expects java/lang/* classes
+   * to remain after applying default exclusions.
    */
   @Test
   void testApplyExclusions_PreservesNonMatchingPrimordial() throws IOException {
     ScopeExclusions exclusions = ScopeExclusions.loadDefaults();
 
     Map<String, ClassInfo> classes = new HashMap<>();
-    classes.put("java/lang/Object", makeClassInfo(
-        "java/lang/Object", ClassLoaderType.PRIMORDIAL));
-    classes.put("java/lang/String", makeClassInfo(
-        "java/lang/String", ClassLoaderType.PRIMORDIAL));
-    classes.put("java/lang/Enum", makeClassInfo(
-        "java/lang/Enum", ClassLoaderType.PRIMORDIAL));
+    classes.put("java/lang/Object", makeClassInfo("java/lang/Object", ClassLoaderType.PRIMORDIAL));
+    classes.put("java/lang/String", makeClassInfo("java/lang/String", ClassLoaderType.PRIMORDIAL));
+    classes.put("java/lang/Enum", makeClassInfo("java/lang/Enum", ClassLoaderType.PRIMORDIAL));
 
     Map<String, ClassInfo> filtered = exclusions.applyExclusions(classes);
 
@@ -114,8 +108,8 @@ class ScopeExclusionsTest {
   }
 
   /**
-   * Unit test: Verifies ScopeExclusions.none() excludes nothing.
-   * Expects all classes to be preserved regardless of loader type.
+   * Unit test: Verifies ScopeExclusions.none() excludes nothing. Expects all classes to be
+   * preserved regardless of loader type.
    */
   @Test
   void testNone_ExcludesNothing() {
@@ -125,28 +119,24 @@ class ScopeExclusionsTest {
     assertThat(exclusions.isExcluded("java/util/HashMap")).isFalse();
 
     Map<String, ClassInfo> classes = new HashMap<>();
-    classes.put("java/util/HashMap", makeClassInfo(
-        "java/util/HashMap", ClassLoaderType.PRIMORDIAL));
-    classes.put("com/example/MyClass", makeClassInfo(
-        "com/example/MyClass", ClassLoaderType.APPLICATION));
+    classes.put(
+        "java/util/HashMap", makeClassInfo("java/util/HashMap", ClassLoaderType.PRIMORDIAL));
+    classes.put(
+        "com/example/MyClass", makeClassInfo("com/example/MyClass", ClassLoaderType.APPLICATION));
 
     Map<String, ClassInfo> filtered = exclusions.applyExclusions(classes);
     assertThat(filtered).hasSize(2);
   }
 
   /**
-   * Unit test: Loads exclusion patterns from a custom file.
-   * Expects custom patterns to work correctly.
+   * Unit test: Loads exclusion patterns from a custom file. Expects custom patterns to work
+   * correctly.
    */
   @Test
   void testLoadFromFile_CustomPatterns(@TempDir Path tempDir) throws IOException {
     Path customFile = tempDir.resolve("custom-exclusions.txt");
-    Files.write(customFile, List.of(
-        "# Custom exclusions",
-        "com/example/internal/.*",
-        "",
-        "org/test/.*"
-    ));
+    Files.write(
+        customFile, List.of("# Custom exclusions", "com/example/internal/.*", "", "org/test/.*"));
 
     ScopeExclusions exclusions = ScopeExclusions.loadFromFile(customFile.toFile());
 
@@ -158,8 +148,8 @@ class ScopeExclusionsTest {
   }
 
   /**
-   * Unit test: Tests error handling for non-existent exclusion file.
-   * Expects IOException with descriptive message.
+   * Unit test: Tests error handling for non-existent exclusion file. Expects IOException with
+   * descriptive message.
    */
   @Test
   void testLoadFromFile_NonExistent() {
@@ -171,27 +161,28 @@ class ScopeExclusionsTest {
   }
 
   /**
-   * Unit test: Tests error handling for invalid regex in exclusion file.
-   * Expects IllegalArgumentException with line number context.
+   * Unit test: Tests error handling for invalid regex in exclusion file. Expects
+   * IllegalArgumentException with line number context.
    */
   @Test
   void testLoadFromFile_InvalidRegex(@TempDir Path tempDir) throws IOException {
     Path badFile = tempDir.resolve("bad-exclusions.txt");
-    Files.write(badFile, List.of(
-        "valid/pattern/.*",
-        "[invalid regex"
-    ));
+    Files.write(badFile, List.of("valid/pattern/.*", "[invalid regex"));
 
     assertThatThrownBy(() -> ScopeExclusions.loadFromFile(badFile.toFile()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("line 2");
   }
 
-  /**
-   * Creates a minimal ClassInfo for testing.
-   */
+  /** Creates a minimal ClassInfo for testing. */
   private static ClassInfo makeClassInfo(String name, ClassLoaderType loaderType) {
-    return new ClassInfo(name, "java/lang/Object", Collections.emptySet(),
-        new HashSet<>(), Opcodes.ACC_PUBLIC, loaderType, false);
+    return new ClassInfo(
+        name,
+        "java/lang/Object",
+        Collections.emptySet(),
+        new HashSet<>(),
+        Opcodes.ACC_PUBLIC,
+        loaderType,
+        false);
   }
 }

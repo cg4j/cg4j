@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-/**
- * Version information utility that loads version and git commit hash from properties file.
- */
+/** Version information utility that loads version and git commit hash from properties file. */
 public class Version {
 
   private static final String VERSION_PROPERTIES = "/version.properties";
@@ -17,9 +15,7 @@ public class Version {
 
   private static Version instance;
 
-  /**
-   * Private constructor loads version properties from classpath.
-   */
+  /** Private constructor loads version properties from classpath. */
   private Version() {
     Properties props = new Properties();
     try (InputStream input = Version.class.getResourceAsStream(VERSION_PROPERTIES)) {
@@ -48,7 +44,7 @@ public class Version {
 
   /**
    * Returns the full version string including git commit hash for SNAPSHOT versions.
-   * 
+   *
    * @return formatted version string (e.g., "0.1.0-SNAPSHOT (abc1234)" or "0.1.0")
    */
   public String getFullVersion() {

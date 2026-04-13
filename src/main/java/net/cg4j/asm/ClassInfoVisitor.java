@@ -1,16 +1,13 @@
 package net.cg4j.asm;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
-/**
- * ASM ClassVisitor that extracts class metadata.
- */
+/** ASM ClassVisitor that extracts class metadata. */
 public final class ClassInfoVisitor extends ClassVisitor {
 
   private static final String CLINIT_NAME = "<clinit>";
@@ -35,8 +32,13 @@ public final class ClassInfoVisitor extends ClassVisitor {
   }
 
   @Override
-  public void visit(int version, int access, String name, String signature,
-                    String superName, String[] interfaces) {
+  public void visit(
+      int version,
+      int access,
+      String name,
+      String signature,
+      String superName,
+      String[] interfaces) {
     this.name = name;
     this.superName = superName;
     this.access = access;
@@ -46,8 +48,8 @@ public final class ClassInfoVisitor extends ClassVisitor {
   }
 
   @Override
-  public MethodVisitor visitMethod(int access, String name, String descriptor,
-                                   String signature, String[] exceptions) {
+  public MethodVisitor visitMethod(
+      int access, String name, String descriptor, String signature, String[] exceptions) {
     methods.add(new MethodSignature(this.name, name, descriptor, access));
     // Detect static initializer
     if (CLINIT_NAME.equals(name) && CLINIT_DESCRIPTOR.equals(descriptor)) {
@@ -58,8 +60,7 @@ public final class ClassInfoVisitor extends ClassVisitor {
   }
 
   /**
-   * Returns the extracted class info.
-   * Must be called after the class has been visited.
+   * Returns the extracted class info. Must be called after the class has been visited.
    *
    * @return the extracted class metadata
    */
