@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Adopt Google Java formatting with Spotless and pre-commit ([#50](https://github.com/cg4j/cg4j/pull/50))
+- Adopt Google Java formatting with Spotless, pre-commit, and CI checks ([#50](https://github.com/cg4j/cg4j/pull/50))
 - Add README badges for license, build status, and Maven release visibility (#43)
 - Use lowercase `-v` as the CLI version flag (with `--version`) (#44)
 - Improve public API Javadocs so release builds complete without warnings ([#49](https://github.com/cg4j/cg4j/pull/49))
