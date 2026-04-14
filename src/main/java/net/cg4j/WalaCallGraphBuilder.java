@@ -72,8 +72,13 @@ public class WalaCallGraphBuilder {
   /**
    * Constructs Class Hierarchy with exclusions.
    *
-   * <p>Scope organization: - Primordial: rt.jar (Java runtime) - always loaded for class hierarchy
-   * - Extension: dependency JARs - Application: target JAR being analyzed
+   * <p>Scope organization:
+   *
+   * <ul>
+   *   <li>Primordial: rt.jar (Java runtime) - always loaded for class hierarchy
+   *   <li>Extension: dependency JARs
+   *   <li>Application: target JAR being analyzed
+   * </ul>
    */
   private ClassHierarchy constructCHA(
       String programJarFile, List<File> dependenciesJarFiles, File exclusionFile) throws Exception {
