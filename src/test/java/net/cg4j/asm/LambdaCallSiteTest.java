@@ -1,30 +1,28 @@
 package net.cg4j.asm;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Opcodes;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-/**
- * Unit tests for LambdaCallSite class.
- */
+/** Unit tests for LambdaCallSite class. */
 class LambdaCallSiteTest {
 
   /**
-   * Unit test: Tests constructor and all getter methods.
-   * Expects all fields to be returned correctly.
+   * Unit test: Tests constructor and all getter methods. Expects all fields to be returned
+   * correctly.
    */
   @Test
   void testConstructorAndGetters() {
-    LambdaCallSite site = new LambdaCallSite(
-        "invoke",
-        "(Ljava/lang/Object;)Ljava/lang/Object;",
-        "()Lkotlin/jvm/functions/Function1;",
-        "com/example/MyClass",
-        "lambda$method$0",
-        "(Ljava/lang/String;)Ljava/lang/String;",
-        Opcodes.H_INVOKESTATIC
-    );
+    LambdaCallSite site =
+        new LambdaCallSite(
+            "invoke",
+            "(Ljava/lang/Object;)Ljava/lang/Object;",
+            "()Lkotlin/jvm/functions/Function1;",
+            "com/example/MyClass",
+            "lambda$method$0",
+            "(Ljava/lang/String;)Ljava/lang/String;",
+            Opcodes.H_INVOKESTATIC);
 
     assertThat(site.getSamMethodName()).isEqualTo("invoke");
     assertThat(site.getSamDescriptor()).isEqualTo("(Ljava/lang/Object;)Ljava/lang/Object;");
@@ -36,20 +34,20 @@ class LambdaCallSiteTest {
   }
 
   /**
-   * Unit test: Tests toString format includes SAM and impl information.
-   * Expects a readable string with both SAM and impl details.
+   * Unit test: Tests toString format includes SAM and impl information. Expects a readable string
+   * with both SAM and impl details.
    */
   @Test
   void testToString() {
-    LambdaCallSite site = new LambdaCallSite(
-        "run",
-        "()V",
-        "()Ljava/lang/Runnable;",
-        "com/example/Foo",
-        "lambda$bar$0",
-        "()V",
-        Opcodes.H_INVOKESTATIC
-    );
+    LambdaCallSite site =
+        new LambdaCallSite(
+            "run",
+            "()V",
+            "()Ljava/lang/Runnable;",
+            "com/example/Foo",
+            "lambda$bar$0",
+            "()V",
+            Opcodes.H_INVOKESTATIC);
 
     String result = site.toString();
     assertThat(result).contains("run");

@@ -4,9 +4,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Stores metadata about a class extracted from bytecode.
- */
+/** Stores metadata about a class extracted from bytecode. */
 public final class ClassInfo {
 
   private final String name;
@@ -28,9 +26,14 @@ public final class ClassInfo {
    * @param loaderType the class loader this class belongs to
    * @param hasClinit true if the class has a static initializer
    */
-  public ClassInfo(String name, String superName, Set<String> interfaces,
-                   Set<MethodSignature> methods, int access, ClassLoaderType loaderType,
-                   boolean hasClinit) {
+  public ClassInfo(
+      String name,
+      String superName,
+      Set<String> interfaces,
+      Set<MethodSignature> methods,
+      int access,
+      ClassLoaderType loaderType,
+      boolean hasClinit) {
     this.name = name;
     this.superName = superName;
     this.interfaces = Collections.unmodifiableSet(new HashSet<>(interfaces));

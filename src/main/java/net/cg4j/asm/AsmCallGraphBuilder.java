@@ -1,13 +1,5 @@
 package net.cg4j.asm;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,10 +16,15 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
-/**
- * Builds call graphs using ASM with RTA-based virtual call resolution.
- */
+/** Builds call graphs using ASM with RTA-based virtual call resolution. */
 public final class AsmCallGraphBuilder {
 
   private static final Logger logger = LogManager.getLogger(AsmCallGraphBuilder.class);
@@ -37,28 +34,28 @@ public final class AsmCallGraphBuilder {
       new MethodSignature("<boot>", "fakeRoot", "()V");
   private static final MethodSignature FAKE_WORLD_CLINIT_METHOD =
       new MethodSignature("<boot>", "fakeWorldClinit", "()V");
-  private static final List<String> PRE_ALLOCATED_TYPES = List.of(
-      "java/lang/Object",
-      "java/lang/ArithmeticException",
-      "java/lang/ArrayStoreException",
-      "java/lang/Class",
-      "java/lang/ClassLoader",
-      "java/lang/ClassCastException",
-      "java/lang/ClassNotFoundException",
-      "java/lang/Number",
-      "java/lang/reflect/AccessibleObject",
-      "java/lang/reflect/Constructor",
-      "java/lang/reflect/Executable",
-      "java/lang/IndexOutOfBoundsException",
-      "java/lang/NegativeArraySizeException",
-      "java/lang/ExceptionInInitializerError",
-      "java/lang/NullPointerException",
-      "java/lang/SecurityManager",
-      "java/lang/String",
-      "java/lang/StringBuilder",
-      "java/lang/Thread",
-      "java/lang/ThreadGroup"
-  );
+  private static final List<String> PRE_ALLOCATED_TYPES =
+      List.of(
+          "java/lang/Object",
+          "java/lang/ArithmeticException",
+          "java/lang/ArrayStoreException",
+          "java/lang/Class",
+          "java/lang/ClassLoader",
+          "java/lang/ClassCastException",
+          "java/lang/ClassNotFoundException",
+          "java/lang/Number",
+          "java/lang/reflect/AccessibleObject",
+          "java/lang/reflect/Constructor",
+          "java/lang/reflect/Executable",
+          "java/lang/IndexOutOfBoundsException",
+          "java/lang/NegativeArraySizeException",
+          "java/lang/ExceptionInInitializerError",
+          "java/lang/NullPointerException",
+          "java/lang/SecurityManager",
+          "java/lang/String",
+          "java/lang/StringBuilder",
+          "java/lang/Thread",
+          "java/lang/ThreadGroup");
 
   private ClassHierarchy hierarchy;
   private Map<String, byte[]> classBytecode;
@@ -66,9 +63,7 @@ public final class AsmCallGraphBuilder {
   private final Map<String, Integer> lambdaCounters = new HashMap<>();
   private final Map<MethodSignature, LambdaImplementation> lambdaImplementations = new HashMap<>();
 
-  /**
-   * Creates an ASM-backed call graph builder.
-   */
+  /** Creates an ASM-backed call graph builder. */
   public AsmCallGraphBuilder() {}
 
   /**
@@ -81,8 +76,8 @@ public final class AsmCallGraphBuilder {
    * @return the call graph result
    * @throws IOException if class metadata or bytecode cannot be read
    */
-  public CallGraphResult buildCallGraph(String jarFile, List<File> dependencies,
-                                        boolean includeRt, ScopeExclusions exclusions)
+  public CallGraphResult buildCallGraph(
+      String jarFile, List<File> dependencies, boolean includeRt, ScopeExclusions exclusions)
       throws IOException {
     logger.info("Loading classes...");
     lambdaCounters.clear();
@@ -113,8 +108,11 @@ public final class AsmCallGraphBuilder {
     allClasses = exclusions.applyExclusions(allClasses);
     int excludedCount = beforeSize - allClasses.size();
     if (excludedCount > 0) {
-      logger.info("Scope reduced to {} classes ({} excluded, {} patterns)",
-          allClasses.size(), excludedCount, exclusions.patternCount());
+      logger.info(
+          "Scope reduced to {} classes ({} excluded, {} patterns)",
+          allClasses.size(),
+          excludedCount,
+          exclusions.patternCount());
     }
 
     logger.info("Building class hierarchy...");
@@ -147,8 +145,8 @@ public final class AsmCallGraphBuilder {
   }
 
   /**
-   * Finds all entry points from application classes.
-   * Entry points are public, non-abstract methods from public, non-interface classes.
+   * Finds all entry points from application classes. Entry points are public, non-abstract methods
+   * from public, non-interface classes.
    */
   private Set<MethodSignature> findEntryPoints(Map<String, ClassInfo> appClasses) {
     Set<MethodSignature> entryPoints = new HashSet<>();
@@ -168,9 +166,7 @@ public final class AsmCallGraphBuilder {
     return entryPoints;
   }
 
-  /**
-   * Runs the worklist algorithm to compute reachable methods and call edges.
-   */
+  /** Runs the worklist algorithm to compute reachable methods and call edges. */
   private WorklistResult runWorklist(Set<MethodSignature> entryPoints) {
     RtaState state = new RtaState();
 
@@ -186,8 +182,11 @@ public final class AsmCallGraphBuilder {
 
         processedCount++;
         if (processedCount % 1000 == 0) {
-          logger.debug("Processed {} methods, pending methods: {}, pending receiver events: {}",
-              processedCount, state.methodQueue.size(), state.receiverEvents.size());
+          logger.debug(
+              "Processed {} methods, pending methods: {}, pending receiver events: {}",
+              processedCount,
+              state.methodQueue.size(),
+              state.receiverEvents.size());
         }
 
         processReachableMethod(method, state);
@@ -202,14 +201,14 @@ public final class AsmCallGraphBuilder {
       }
     }
 
-    logger.info("Worklist complete: {} reachable methods, {} edges",
-        state.reachable.size(), state.edges.size());
+    logger.info(
+        "Worklist complete: {} reachable methods, {} edges",
+        state.reachable.size(),
+        state.edges.size());
     return new WorklistResult(state.reachable, state.edges);
   }
 
-  /**
-   * Seeds the worklist with WALA-style fake root calls and allocations.
-   */
+  /** Seeds the worklist with WALA-style fake root calls and allocations. */
   private void seedFakeRoot(Set<MethodSignature> entryPoints, RtaState state) {
     for (MethodSignature entryPoint : entryPoints) {
       processFakeRootEntrypoint(entryPoint, state);
@@ -220,9 +219,7 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Adds a WALA-style fake root call for an entry point if its arguments can be materialized.
-   */
+  /** Adds a WALA-style fake root call for an entry point if its arguments can be materialized. */
   private void processFakeRootEntrypoint(MethodSignature entryPoint, RtaState state) {
     if (!allocateFakeRootArguments(entryPoint, state)) {
       return;
@@ -235,8 +232,7 @@ public final class AsmCallGraphBuilder {
    * Materializes fake root arguments for an entry point, including {@code this} for instance calls.
    */
   private boolean allocateFakeRootArguments(MethodSignature entryPoint, RtaState state) {
-    if (!entryPoint.isStatic()
-        && !allocateFakeRootObject(entryPoint.getOwner(), true, state)) {
+    if (!entryPoint.isStatic() && !allocateFakeRootObject(entryPoint.getOwner(), true, state)) {
       return false;
     }
 
@@ -249,9 +245,7 @@ public final class AsmCallGraphBuilder {
     return true;
   }
 
-  /**
-   * Creates the synthetic fake root call site for an entry point using JVM dispatch semantics.
-   */
+  /** Creates the synthetic fake root call site for an entry point using JVM dispatch semantics. */
   private CallSite createFakeRootCallSite(MethodSignature entryPoint) {
     ClassInfo ownerClass = hierarchy.getClass(entryPoint.getOwner());
     boolean isInterface = ownerClass != null && ownerClass.isInterface();
@@ -275,9 +269,7 @@ public final class AsmCallGraphBuilder {
         isInterface);
   }
 
-  /**
-   * Allocates a fake root argument following WALA's declared-parameter strategy.
-   */
+  /** Allocates a fake root argument following WALA's declared-parameter strategy. */
   private boolean allocateFakeRootType(Type type, RtaState state) {
     switch (type.getSort()) {
       case Type.OBJECT:
@@ -289,9 +281,7 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Allocates an array argument by materializing one representative reference element, if any.
-   */
+  /** Allocates an array argument by materializing one representative reference element, if any. */
   private boolean allocateFakeRootArray(Type arrayType, RtaState state) {
     Type elementType = arrayType;
     while (elementType.getSort() == Type.ARRAY) {
@@ -305,11 +295,9 @@ public final class AsmCallGraphBuilder {
     return true;
   }
 
-  /**
-   * Allocates a fake root object when the class is available in the hierarchy.
-   */
-  private boolean allocateFakeRootObject(String className, boolean invokeDefaultConstructor,
-                                         RtaState state) {
+  /** Allocates a fake root object when the class is available in the hierarchy. */
+  private boolean allocateFakeRootObject(
+      String className, boolean invokeDefaultConstructor, RtaState state) {
     ClassInfo klass = hierarchy.getClass(className);
     if (klass == null) {
       return false;
@@ -330,9 +318,7 @@ public final class AsmCallGraphBuilder {
     return true;
   }
 
-  /**
-   * Adds the default constructor call emitted by WALA's fake root allocation logic.
-   */
+  /** Adds the default constructor call emitted by WALA's fake root allocation logic. */
   private void addFakeRootDefaultConstructor(String className, RtaState state) {
     MethodSignature constructor = hierarchy.getClass(className).getMethod("<init>", "()V");
     if (constructor != null) {
@@ -340,9 +326,7 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Processes the bytecode summary for a newly reachable method.
-   */
+  /** Processes the bytecode summary for a newly reachable method. */
   private void processReachableMethod(MethodSignature method, RtaState state) {
     MethodAnalysisResult analysisResult = analyzeMethod(method);
 
@@ -363,13 +347,12 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Processes a single call site according to its JVM dispatch semantics.
-   */
+  /** Processes a single call site according to its JVM dispatch semantics. */
   private void processCallSite(MethodSignature caller, CallSite callSite, RtaState state) {
     if (callSite.isStatic()) {
-      for (MethodSignature target : hierarchy.resolveStaticOrSpecialCall(
-          callSite.getOwner(), callSite.getName(), callSite.getDescriptor())) {
+      for (MethodSignature target :
+          hierarchy.resolveStaticOrSpecialCall(
+              callSite.getOwner(), callSite.getName(), callSite.getDescriptor())) {
         addResolvedTarget(caller, target, state);
       }
       processClassInitializer(callSite.getOwner(), state);
@@ -377,8 +360,9 @@ public final class AsmCallGraphBuilder {
     }
 
     if (callSite.isSpecial()) {
-      for (MethodSignature target : hierarchy.resolveStaticOrSpecialCall(
-          callSite.getOwner(), callSite.getName(), callSite.getDescriptor())) {
+      for (MethodSignature target :
+          hierarchy.resolveStaticOrSpecialCall(
+              callSite.getOwner(), callSite.getName(), callSite.getDescriptor())) {
         addResolvedTarget(caller, target, state);
       }
       return;
@@ -398,9 +382,7 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Processes a newly allocated concrete type and registers it against selector buckets.
-   */
+  /** Processes a newly allocated concrete type and registers it against selector buckets. */
   private void handleNewAllocation(String allocatedType, RtaState state) {
     ClassInfo klass = hierarchy.getClass(allocatedType);
     if (klass == null || klass.isInterface() || klass.isAbstract()) {
@@ -444,10 +426,9 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Registers selector-to-concrete-type membership for all methods declared on a type.
-   */
-  private void registerImplementedMethods(String declarerType, String concreteType, RtaState state) {
+  /** Registers selector-to-concrete-type membership for all methods declared on a type. */
+  private void registerImplementedMethods(
+      String declarerType, String concreteType, RtaState state) {
     ClassInfo declarer = hierarchy.getClass(declarerType);
     if (declarer == null) {
       return;
@@ -455,17 +436,15 @@ public final class AsmCallGraphBuilder {
 
     for (MethodSignature method : declarer.getMethods()) {
       SelectorKey selector = SelectorKey.from(method);
-      Set<String> bucket = state.selectorToReceiverTypes.computeIfAbsent(
-          selector, key -> new HashSet<>());
+      Set<String> bucket =
+          state.selectorToReceiverTypes.computeIfAbsent(selector, key -> new HashSet<>());
       if (bucket.add(concreteType)) {
         state.receiverEvents.addLast(new ReceiverEvent(selector, concreteType));
       }
     }
   }
 
-  /**
-   * Resolves a virtual call site for a newly discovered receiver type.
-   */
+  /** Resolves a virtual call site for a newly discovered receiver type. */
   private void tryDispatch(VirtualCallUse use, String concreteType, RtaState state) {
     if (!use.processedTypes.add(concreteType)) {
       return;
@@ -475,8 +454,9 @@ public final class AsmCallGraphBuilder {
       return;
     }
 
-    MethodSignature target = hierarchy.resolveVirtualTarget(
-        concreteType, use.callSite.getName(), use.callSite.getDescriptor());
+    MethodSignature target =
+        hierarchy.resolveVirtualTarget(
+            concreteType, use.callSite.getName(), use.callSite.getDescriptor());
     if (target == null || target.isAbstract()) {
       return;
     }
@@ -484,9 +464,7 @@ public final class AsmCallGraphBuilder {
     addResolvedTarget(use.caller, target, state);
   }
 
-  /**
-   * Adds a resolved call graph edge and enqueues the target if it becomes reachable.
-   */
+  /** Adds a resolved call graph edge and enqueues the target if it becomes reachable. */
   private void addResolvedTarget(MethodSignature caller, MethodSignature target, RtaState state) {
     if (state.edges.add(new CallGraphResult.Edge(caller, target))
         && !isCloneMethod(target)
@@ -495,9 +473,7 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Triggers a class initializer and its superclass initializers exactly once.
-   */
+  /** Triggers a class initializer and its superclass initializers exactly once. */
   private void processClassInitializer(String className, RtaState state) {
     ClassInfo klass = hierarchy.getClass(className);
     if (klass == null || !state.processedClinits.add(className)) {
@@ -517,18 +493,18 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Result of analyzing a method's bytecode.
-   */
+  /** Result of analyzing a method's bytecode. */
   private static class MethodAnalysisResult {
     final List<CallSite> callSites;
     final Set<String> instantiatedTypes;
     final Set<String> staticFieldOwners;
     final List<LambdaCallSite> lambdaCallSites;
 
-    MethodAnalysisResult(List<CallSite> callSites, Set<String> instantiatedTypes,
-                         Set<String> staticFieldOwners,
-                         List<LambdaCallSite> lambdaCallSites) {
+    MethodAnalysisResult(
+        List<CallSite> callSites,
+        Set<String> instantiatedTypes,
+        Set<String> staticFieldOwners,
+        List<LambdaCallSite> lambdaCallSites) {
       this.callSites = callSites;
       this.instantiatedTypes = instantiatedTypes;
       this.staticFieldOwners = staticFieldOwners;
@@ -565,29 +541,36 @@ public final class AsmCallGraphBuilder {
   }
 
   /**
-   * Processes a single lambda INVOKEDYNAMIC call site by creating a synthetic lambda class
-   * and edges matching WALA's two-hop pattern: caller -> SAM, SAM -> impl.
+   * Processes a single lambda INVOKEDYNAMIC call site by creating a synthetic lambda class and
+   * edges matching WALA's two-hop pattern: caller -> SAM, SAM -> impl.
    */
-  private void processLambdaCallSite(MethodSignature caller, LambdaCallSite lambda, RtaState state) {
+  private void processLambdaCallSite(
+      MethodSignature caller, LambdaCallSite lambda, RtaState state) {
     String syntheticName = generateLambdaClassName(caller.getOwner());
     ClassLoaderType syntheticLoaderType = getSyntheticLambdaLoaderType(caller);
 
-    MethodSignature samMethod = new MethodSignature(
-        syntheticName, lambda.getSamMethodName(), lambda.getSamDescriptor(),
-        Opcodes.ACC_PUBLIC);
+    MethodSignature samMethod =
+        new MethodSignature(
+            syntheticName,
+            lambda.getSamMethodName(),
+            lambda.getSamDescriptor(),
+            Opcodes.ACC_PUBLIC);
 
     String functionalInterface = extractFunctionalInterface(lambda);
-    Set<String> interfaces = functionalInterface != null
-        ? Collections.singleton(functionalInterface) : Collections.emptySet();
+    Set<String> interfaces =
+        functionalInterface != null
+            ? Collections.singleton(functionalInterface)
+            : Collections.emptySet();
 
-    ClassInfo syntheticClass = new ClassInfo(
-        syntheticName,
-        "java/lang/Object",
-        interfaces,
-        Collections.singleton(samMethod),
-        Opcodes.ACC_FINAL | Opcodes.ACC_SYNTHETIC,
-        syntheticLoaderType,
-        false);
+    ClassInfo syntheticClass =
+        new ClassInfo(
+            syntheticName,
+            "java/lang/Object",
+            interfaces,
+            Collections.singleton(samMethod),
+            Opcodes.ACC_FINAL | Opcodes.ACC_SYNTHETIC,
+            syntheticLoaderType,
+            false);
 
     hierarchy.registerSyntheticClass(syntheticClass);
     lambdaImplementations.put(samMethod, LambdaImplementation.from(lambda, hierarchy));
@@ -598,15 +581,16 @@ public final class AsmCallGraphBuilder {
    * Reuses the caller's loader type so synthetic lambdas are filtered like their originating code.
    */
   private ClassLoaderType getSyntheticLambdaLoaderType(MethodSignature caller) {
-    ClassInfo callerClass = Objects.requireNonNull(
-        hierarchy.getClass(caller.getOwner()),
-        "Expected caller class in hierarchy: " + caller.getOwner());
+    ClassInfo callerClass =
+        Objects.requireNonNull(
+            hierarchy.getClass(caller.getOwner()),
+            "Expected caller class in hierarchy: " + caller.getOwner());
     return callerClass.getLoaderType();
   }
 
   /**
-   * Generates a WALA-compatible synthetic lambda class name.
-   * Format: wala/lambda$owner_with_slashes_as_dollars$index
+   * Generates a WALA-compatible synthetic lambda class name. Format:
+   * wala/lambda$owner_with_slashes_as_dollars$index
    */
   private String generateLambdaClassName(String ownerClass) {
     int index = lambdaCounters.merge(ownerClass, 0, (old, value) -> old + 1);
@@ -636,18 +620,14 @@ public final class AsmCallGraphBuilder {
     return null;
   }
 
-  /**
-   * Returns true for the special clone() dispatch that WALA keeps only as an edge.
-   */
+  /** Returns true for the special clone() dispatch that WALA keeps only as an edge. */
   private boolean isCloneMethod(MethodSignature method) {
     return method.getOwner().equals("java/lang/Object")
         && method.getName().equals("clone")
         && method.getDescriptor().equals("()Ljava/lang/Object;");
   }
 
-  /**
-   * Loads bytecode for classes from JAR files.
-   */
+  /** Loads bytecode for classes from JAR files. */
   private void loadBytecode(List<File> jarFiles, Map<String, byte[]> bytecodeMap)
       throws IOException {
     for (File jarFile : jarFiles) {
@@ -671,9 +651,7 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Filters out edges involving Primordial (JDK) classes.
-   */
+  /** Filters out edges involving Primordial (JDK) classes. */
   private Set<CallGraphResult.Edge> filterRtEdges(Set<CallGraphResult.Edge> edges) {
     Set<CallGraphResult.Edge> filtered = new HashSet<>();
 
@@ -682,10 +660,11 @@ public final class AsmCallGraphBuilder {
       ClassInfo targetClass = hierarchy.getClass(edge.getTarget().getOwner());
 
       boolean sourceIsBoot = edge.getSource().getOwner().equals("<boot>");
-      boolean sourceIsPrimordial = sourceIsBoot || sourceClass != null
-          && sourceClass.getLoaderType() == ClassLoaderType.PRIMORDIAL;
-      boolean targetIsPrimordial = targetClass != null
-          && targetClass.getLoaderType() == ClassLoaderType.PRIMORDIAL;
+      boolean sourceIsPrimordial =
+          sourceIsBoot
+              || sourceClass != null && sourceClass.getLoaderType() == ClassLoaderType.PRIMORDIAL;
+      boolean targetIsPrimordial =
+          targetClass != null && targetClass.getLoaderType() == ClassLoaderType.PRIMORDIAL;
 
       if (!sourceIsPrimordial && !targetIsPrimordial) {
         filtered.add(edge);
@@ -695,9 +674,7 @@ public final class AsmCallGraphBuilder {
     return filtered;
   }
 
-  /**
-   * Temporary holder for worklist algorithm results.
-   */
+  /** Temporary holder for worklist algorithm results. */
   private static class WorklistResult {
     final Set<MethodSignature> reachable;
     final Set<CallGraphResult.Edge> edges;
@@ -708,9 +685,7 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Mutable state for the RTA worklist.
-   */
+  /** Mutable state for the RTA worklist. */
   private static final class RtaState {
     private final Set<MethodSignature> reachable = new HashSet<>();
     private final Set<CallGraphResult.Edge> edges = new HashSet<>();
@@ -723,9 +698,7 @@ public final class AsmCallGraphBuilder {
     private final Deque<ReceiverEvent> receiverEvents = new ArrayDeque<>();
   }
 
-  /**
-   * Records that a selector bucket gained a new concrete receiver type.
-   */
+  /** Records that a selector bucket gained a new concrete receiver type. */
   private static final class ReceiverEvent {
     private final SelectorKey selector;
     private final String concreteType;
@@ -736,9 +709,7 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Tracks which receiver types have already been processed for a virtual call site.
-   */
+  /** Tracks which receiver types have already been processed for a virtual call site. */
   private static final class VirtualCallUse {
     private final MethodSignature caller;
     private final CallSite callSite;
@@ -750,9 +721,7 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Synthetic lambda trampoline body that mirrors WALA's summary-method dispatch.
-   */
+  /** Synthetic lambda trampoline body that mirrors WALA's summary-method dispatch. */
   private static final class LambdaImplementation {
     private final CallSite callSite;
     private final Set<String> instantiatedTypes;
@@ -786,7 +755,8 @@ public final class AsmCallGraphBuilder {
           isInterface = true;
           break;
         default:
-          throw new IllegalArgumentException("Unsupported lambda handle tag: " + lambda.getImplTag());
+          throw new IllegalArgumentException(
+              "Unsupported lambda handle tag: " + lambda.getImplTag());
       }
 
       ClassInfo implOwner = hierarchy.getClass(lambda.getImplOwner());
@@ -794,12 +764,13 @@ public final class AsmCallGraphBuilder {
         isInterface = true;
       }
 
-      CallSite callSite = new CallSite(
-          opcode,
-          lambda.getImplOwner(),
-          lambda.getImplName(),
-          lambda.getImplDescriptor(),
-          isInterface);
+      CallSite callSite =
+          new CallSite(
+              opcode,
+              lambda.getImplOwner(),
+              lambda.getImplName(),
+              lambda.getImplDescriptor(),
+              isInterface);
       return new LambdaImplementation(callSite, instantiatedTypes);
     }
 
@@ -812,9 +783,7 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * Selector identity used by the WALA-style receiver buckets.
-   */
+  /** Selector identity used by the WALA-style receiver buckets. */
   private static final class SelectorKey {
     private final String name;
     private final String descriptor;
@@ -841,8 +810,7 @@ public final class AsmCallGraphBuilder {
         return false;
       }
       SelectorKey that = (SelectorKey) other;
-      return Objects.equals(name, that.name)
-          && Objects.equals(descriptor, that.descriptor);
+      return Objects.equals(name, that.name) && Objects.equals(descriptor, that.descriptor);
     }
 
     @Override
@@ -851,9 +819,7 @@ public final class AsmCallGraphBuilder {
     }
   }
 
-  /**
-   * ClassVisitor that extracts call sites and allocations from a specific method.
-   */
+  /** ClassVisitor that extracts call sites and allocations from a specific method. */
   private static class MethodAnalysisVisitor extends ClassVisitor {
     private final String targetMethodName;
     private final String targetDescriptor;
@@ -869,8 +835,8 @@ public final class AsmCallGraphBuilder {
     }
 
     @Override
-    public MethodVisitor visitMethod(int access, String name, String descriptor,
-                                     String signature, String[] exceptions) {
+    public MethodVisitor visitMethod(
+        int access, String name, String descriptor, String signature, String[] exceptions) {
       if (name.equals(targetMethodName) && descriptor.equals(targetDescriptor)) {
         CallSiteExtractor extractor = new CallSiteExtractor();
         callSites = extractor.getCallSites();

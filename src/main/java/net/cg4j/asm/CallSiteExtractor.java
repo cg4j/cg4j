@@ -1,18 +1,15 @@
 package net.cg4j.asm;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-/**
- * ASM MethodVisitor that extracts call sites and instantiated types from method bytecode.
- */
+/** ASM MethodVisitor that extracts call sites and instantiated types from method bytecode. */
 public final class CallSiteExtractor extends MethodVisitor {
 
   private static final String LAMBDA_METAFACTORY = "java/lang/invoke/LambdaMetafactory";
@@ -22,16 +19,14 @@ public final class CallSiteExtractor extends MethodVisitor {
   private final Set<String> instantiatedTypes = new HashSet<>();
   private final Set<String> staticFieldOwners = new HashSet<>();
 
-  /**
-   * Creates a call site extractor.
-   */
+  /** Creates a call site extractor. */
   public CallSiteExtractor() {
     super(Opcodes.ASM9);
   }
 
   @Override
-  public void visitMethodInsn(int opcode, String owner, String name, String descriptor,
-                              boolean isInterface) {
+  public void visitMethodInsn(
+      int opcode, String owner, String name, String descriptor, boolean isInterface) {
     // Skip lambda metafactory calls (INVOKEDYNAMIC bootstrap target)
     if (owner.equals(LAMBDA_METAFACTORY)) {
       return;
@@ -41,9 +36,11 @@ public final class CallSiteExtractor extends MethodVisitor {
   }
 
   @Override
-  public void visitInvokeDynamicInsn(String name, String descriptor,
-                                     Handle bootstrapMethodHandle,
-                                     Object... bootstrapMethodArguments) {
+  public void visitInvokeDynamicInsn(
+      String name,
+      String descriptor,
+      Handle bootstrapMethodHandle,
+      Object... bootstrapMethodArguments) {
     if (!isLambdaMetafactory(bootstrapMethodHandle)) {
       return;
     }
@@ -57,15 +54,15 @@ public final class CallSiteExtractor extends MethodVisitor {
         && bootstrapMethodArguments[1] instanceof Handle) {
       Type samType = (Type) bootstrapMethodArguments[0];
       Handle implHandle = (Handle) bootstrapMethodArguments[1];
-      lambdaCallSites.add(new LambdaCallSite(
-          name,
-          samType.getDescriptor(),
-          descriptor,
-          implHandle.getOwner(),
-          implHandle.getName(),
-          implHandle.getDesc(),
-          implHandle.getTag()
-      ));
+      lambdaCallSites.add(
+          new LambdaCallSite(
+              name,
+              samType.getDescriptor(),
+              descriptor,
+              implHandle.getOwner(),
+              implHandle.getName(),
+              implHandle.getDesc(),
+              implHandle.getTag()));
     }
   }
 
@@ -119,12 +116,9 @@ public final class CallSiteExtractor extends MethodVisitor {
     return staticFieldOwners;
   }
 
-  /**
-   * Checks if a bootstrap method handle is LambdaMetafactory.metafactory or altMetafactory.
-   */
+  /** Checks if a bootstrap method handle is LambdaMetafactory.metafactory or altMetafactory. */
   private static boolean isLambdaMetafactory(Handle handle) {
     return handle.getOwner().equals(LAMBDA_METAFACTORY)
-        && (handle.getName().equals("metafactory")
-            || handle.getName().equals("altMetafactory"));
+        && (handle.getName().equals("metafactory") || handle.getName().equals("altMetafactory"));
   }
 }

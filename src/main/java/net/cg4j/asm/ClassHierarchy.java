@@ -1,18 +1,15 @@
 package net.cg4j.asm;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-/**
- * Maintains class hierarchy information and resolves virtual calls using RTA.
- */
+/** Maintains class hierarchy information and resolves virtual calls using RTA. */
 public final class ClassHierarchy {
 
   private static final Logger logger = LogManager.getLogger(ClassHierarchy.class);
@@ -37,9 +34,7 @@ public final class ClassHierarchy {
     buildReverseRelations();
   }
 
-  /**
-   * Builds reverse relations (subclass and implementor maps).
-   */
+  /** Builds reverse relations (subclass and implementor maps). */
   private void buildReverseRelations() {
     for (ClassInfo info : classes.values()) {
       // Track subclass relation
@@ -105,8 +100,8 @@ public final class ClassHierarchy {
   }
 
   /**
-   * Returns all subtypes (transitive) of a type, including itself.
-   * Results are cached for performance.
+   * Returns all subtypes (transitive) of a type, including itself. Results are cached for
+   * performance.
    *
    * @param typeName the internal type name
    * @return the transitive subtype closure including {@code typeName}
@@ -115,9 +110,7 @@ public final class ClassHierarchy {
     return subtypesCache.computeIfAbsent(typeName, this::computeAllSubtypes);
   }
 
-  /**
-   * Computes all subtypes transitively.
-   */
+  /** Computes all subtypes transitively. */
   private Set<String> computeAllSubtypes(String typeName) {
     Set<String> result = new HashSet<>();
     result.add(typeName);
@@ -125,9 +118,7 @@ public final class ClassHierarchy {
     return result;
   }
 
-  /**
-   * Recursively collects all subtypes.
-   */
+  /** Recursively collects all subtypes. */
   private void collectSubtypes(String typeName, Set<String> result) {
     // Collect subclasses
     for (String subclass : getDirectSubclasses(typeName)) {
@@ -179,12 +170,11 @@ public final class ClassHierarchy {
    * @return the transitive set of implemented interfaces
    */
   public Set<String> getAllImplementedInterfaces(String className) {
-    return implementedInterfacesCache.computeIfAbsent(className, this::computeAllImplementedInterfaces);
+    return implementedInterfacesCache.computeIfAbsent(
+        className, this::computeAllImplementedInterfaces);
   }
 
-  /**
-   * Computes all interfaces implemented by a class or interface, transitively.
-   */
+  /** Computes all interfaces implemented by a class or interface, transitively. */
   private Set<String> computeAllImplementedInterfaces(String className) {
     ClassInfo info = classes.get(className);
     if (info == null) {
@@ -236,8 +226,8 @@ public final class ClassHierarchy {
    * @param descriptor the target method descriptor
    * @return the resolved concrete target, or {@code null} if resolution fails
    */
-  public MethodSignature resolveVirtualTarget(String concreteType, String methodName,
-                                              String descriptor) {
+  public MethodSignature resolveVirtualTarget(
+      String concreteType, String methodName, String descriptor) {
     String current = concreteType;
 
     while (current != null) {
@@ -258,8 +248,8 @@ public final class ClassHierarchy {
   }
 
   /**
-   * Resolves a virtual call using RTA (Rapid Type Analysis).
-   * Only considers types that have been instantiated.
+   * Resolves a virtual call using RTA (Rapid Type Analysis). Only considers types that have been
+   * instantiated.
    *
    * @param receiverType the declared receiver type
    * @param methodName the method name
@@ -267,9 +257,8 @@ public final class ClassHierarchy {
    * @param instantiatedTypes set of types that have been instantiated via NEW
    * @return set of possible target methods
    */
-  public Set<MethodSignature> resolveVirtualCallRTA(String receiverType, String methodName,
-                                                     String descriptor,
-                                                     Set<String> instantiatedTypes) {
+  public Set<MethodSignature> resolveVirtualCallRTA(
+      String receiverType, String methodName, String descriptor, Set<String> instantiatedTypes) {
     Set<MethodSignature> targets = new HashSet<>();
 
     Set<String> subtypes = getAllSubtypes(receiverType);
@@ -307,27 +296,27 @@ public final class ClassHierarchy {
    */
   public Set<MethodSignature> resolveCallSiteRTA(CallSite callSite, Set<String> instantiatedTypes) {
     if (callSite.isStatic() || callSite.isSpecial()) {
-      return resolveStaticOrSpecialCall(callSite.getOwner(), callSite.getName(),
-          callSite.getDescriptor());
+      return resolveStaticOrSpecialCall(
+          callSite.getOwner(), callSite.getName(), callSite.getDescriptor());
     } else if (callSite.isVirtual()) {
-      return resolveVirtualCallRTA(callSite.getOwner(), callSite.getName(),
-          callSite.getDescriptor(), instantiatedTypes);
+      return resolveVirtualCallRTA(
+          callSite.getOwner(), callSite.getName(), callSite.getDescriptor(), instantiatedTypes);
     }
     // Unknown opcode
     return Collections.emptySet();
   }
 
   /**
-   * Resolves a static or special (constructor/private/super) call.
-   * Returns exactly one target method or empty set if not found.
+   * Resolves a static or special (constructor/private/super) call. Returns exactly one target
+   * method or empty set if not found.
    *
    * @param ownerType the owner class
    * @param methodName the method name
    * @param descriptor the method descriptor
    * @return set containing the target method, or empty set
    */
-  public Set<MethodSignature> resolveStaticOrSpecialCall(String ownerType, String methodName,
-                                                          String descriptor) {
+  public Set<MethodSignature> resolveStaticOrSpecialCall(
+      String ownerType, String methodName, String descriptor) {
     MethodSignature method = lookupMethod(ownerType, methodName, descriptor);
     if (method != null) {
       return Collections.singleton(method);
@@ -336,8 +325,8 @@ public final class ClassHierarchy {
   }
 
   /**
-   * Registers a synthetic class (e.g., lambda) into the hierarchy.
-   * Updates reverse relations and invalidates hierarchy caches.
+   * Registers a synthetic class (e.g., lambda) into the hierarchy. Updates reverse relations and
+   * invalidates hierarchy caches.
    *
    * @param syntheticClass the synthetic class to register
    */
@@ -346,12 +335,12 @@ public final class ClassHierarchy {
 
     // Update reverse relations
     if (syntheticClass.getSuperName() != null) {
-      subclasses.computeIfAbsent(syntheticClass.getSuperName(), k -> new HashSet<>())
+      subclasses
+          .computeIfAbsent(syntheticClass.getSuperName(), k -> new HashSet<>())
           .add(syntheticClass.getName());
     }
     for (String iface : syntheticClass.getInterfaces()) {
-      implementors.computeIfAbsent(iface, k -> new HashSet<>())
-          .add(syntheticClass.getName());
+      implementors.computeIfAbsent(iface, k -> new HashSet<>()).add(syntheticClass.getName());
     }
 
     // Invalidate caches — synthetic classes are leaf nodes but affect parent lookups
@@ -368,9 +357,7 @@ public final class ClassHierarchy {
     return classes.size();
   }
 
-  /**
-   * Collects transitive interfaces for a class.
-   */
+  /** Collects transitive interfaces for a class. */
   private void collectInterfaces(ClassInfo info, Set<String> result) {
     for (String iface : info.getInterfaces()) {
       if (result.add(iface)) {
@@ -390,12 +377,9 @@ public final class ClassHierarchy {
     }
   }
 
-  /**
-   * Looks for a non-abstract default method on implemented interfaces.
-   */
-  private MethodSignature lookupDefaultInterfaceMethod(String className, String methodName,
-                                                       String descriptor,
-                                                       Set<String> visitedInterfaces) {
+  /** Looks for a non-abstract default method on implemented interfaces. */
+  private MethodSignature lookupDefaultInterfaceMethod(
+      String className, String methodName, String descriptor, Set<String> visitedInterfaces) {
     ClassInfo info = classes.get(className);
     if (info == null) {
       return null;
@@ -417,12 +401,9 @@ public final class ClassHierarchy {
     return null;
   }
 
-  /**
-   * Looks for a concrete method declaration on an interface hierarchy.
-   */
-  private MethodSignature lookupInterfaceMethod(String interfaceName, String methodName,
-                                                String descriptor,
-                                                Set<String> visitedInterfaces) {
+  /** Looks for a concrete method declaration on an interface hierarchy. */
+  private MethodSignature lookupInterfaceMethod(
+      String interfaceName, String methodName, String descriptor, Set<String> visitedInterfaces) {
     if (!visitedInterfaces.add(interfaceName)) {
       return null;
     }

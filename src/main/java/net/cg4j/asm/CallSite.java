@@ -2,9 +2,7 @@ package net.cg4j.asm;
 
 import org.objectweb.asm.Opcodes;
 
-/**
- * Represents a method invocation instruction found in bytecode.
- */
+/** Represents a method invocation instruction found in bytecode. */
 public final class CallSite {
 
   private final int opcode;
@@ -115,11 +113,21 @@ public final class CallSite {
   public String toString() {
     String opcodeStr;
     switch (opcode) {
-      case Opcodes.INVOKEVIRTUAL: opcodeStr = "INVOKEVIRTUAL"; break;
-      case Opcodes.INVOKEINTERFACE: opcodeStr = "INVOKEINTERFACE"; break;
-      case Opcodes.INVOKESPECIAL: opcodeStr = "INVOKESPECIAL"; break;
-      case Opcodes.INVOKESTATIC: opcodeStr = "INVOKESTATIC"; break;
-      default: opcodeStr = "INVOKE_" + opcode; break;
+      case Opcodes.INVOKEVIRTUAL:
+        opcodeStr = "INVOKEVIRTUAL";
+        break;
+      case Opcodes.INVOKEINTERFACE:
+        opcodeStr = "INVOKEINTERFACE";
+        break;
+      case Opcodes.INVOKESPECIAL:
+        opcodeStr = "INVOKESPECIAL";
+        break;
+      case Opcodes.INVOKESTATIC:
+        opcodeStr = "INVOKESTATIC";
+        break;
+      default:
+        opcodeStr = "INVOKE_" + opcode;
+        break;
     }
     return opcodeStr + " " + owner + "." + name + descriptor;
   }

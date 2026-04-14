@@ -3,9 +3,7 @@ package net.cg4j.asm;
 import java.util.Collections;
 import java.util.Set;
 
-/**
- * Contains the result of call graph construction.
- */
+/** Contains the result of call graph construction. */
 public final class CallGraphResult {
 
   private final Set<Edge> edges;
@@ -49,9 +47,7 @@ public final class CallGraphResult {
     return edges.size();
   }
 
-  /**
-   * Represents a directed edge in the call graph.
-   */
+  /** Represents a directed edge in the call graph. */
   public static final class Edge {
     private final MethodSignature source;
     private final MethodSignature target;

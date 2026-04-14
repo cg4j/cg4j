@@ -1,17 +1,15 @@
 package net.cg4j.asm;
 
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Unit tests for CallGraphResult class.
- */
+import org.junit.jupiter.api.Test;
+
+/** Unit tests for CallGraphResult class. */
 class CallGraphResultTest {
 
   /**
-   * Unit test: Tests CallGraphResult.Edge storage.
-   * Expects correct source and target method signatures in edge.
+   * Unit test: Tests CallGraphResult.Edge storage. Expects correct source and target method
+   * signatures in edge.
    */
   @Test
   void testEdgeStorage() {
@@ -27,8 +25,8 @@ class CallGraphResultTest {
   }
 
   /**
-   * Unit test: Tests CallGraphResult.Edge equality.
-   * Expects edges with same source and target to be equal.
+   * Unit test: Tests CallGraphResult.Edge equality. Expects edges with same source and target to be
+   * equal.
    */
   @Test
   void testEdgeEquality() {
